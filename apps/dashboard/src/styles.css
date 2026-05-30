@@ -1,0 +1,70 @@
+:root {
+  font-family: "SF Pro Text", "Segoe UI", sans-serif;
+  color: #1b1b1b;
+  background: #f5f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #dce1e8;
+  background: #fff;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.topbar a {
+  color: #0c4a9a;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.content {
+  padding: 20px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #dce1e8;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #eef1f5;
+  vertical-align: top;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #dce1e8;
+  padding: 14px;
+}
+
+pre {
+  margin: 0;
+  background: #f1f4f8;
+  border: 1px solid #dde3ea;
+  padding: 10px;
+  white-space: pre-wrap;
+}

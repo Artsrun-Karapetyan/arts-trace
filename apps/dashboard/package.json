@@ -1,0 +1,27 @@
+{
+  "name": "@artstrace/dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "pnpm routegen && vite build",
+    "typecheck": "pnpm routegen && tsc -p tsconfig.json",
+    "routegen": "tsr generate"
+  },
+  "dependencies": {
+    "@tanstack/react-router": "^1.170.10",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "@artstrace/browser": "workspace:*"
+  },
+  "devDependencies": {
+    "@tanstack/router-plugin": "^1.168.13",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14",
+    "@tanstack/router-cli": "^1.167.12"
+  }
+}
