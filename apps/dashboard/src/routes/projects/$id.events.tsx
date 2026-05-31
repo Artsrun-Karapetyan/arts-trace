@@ -1,6 +1,7 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { fetchProjectEvents, fmt } from "../../lib";
+import { SourceLocation } from "../../components/SourceLocation";
 
 export const Route = createFileRoute("/projects/$id/events")({
   loader: ({ params }) => fetchProjectEvents(params.id),
@@ -9,6 +10,7 @@ export const Route = createFileRoute("/projects/$id/events")({
 
 function ProjectEventsPage() {
   const events = Route.useLoaderData();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { id } = Route.useParams();
 
@@ -43,13 +45,22 @@ function ProjectEventsPage() {
             </thead>
             <tbody>
               {events.map((event) => (
-                <tr key={event.id}>
+                <tr
+                  key={event.id}
+                  className="clickable-row"
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("a, button")) return;
+                    navigate({ to: "/events/$id", params: { id: event.id }, search: { pid: id } });
+                  }}
+                >
                   <td>
                     <Link className="link-strong" to="/events/$id" params={{ id: event.id }} search={{ pid: id }}>
                       {event.message}
                     </Link>
                   </td>
-                  <td className="mono">{event.fileName ? `${event.fileName}:${event.line ?? "?"}:${event.column ?? "?"}` : "-"}</td>
+                  <td>
+                    <SourceLocation fileName={event.fileName} line={event.line} column={event.column} stack={event.stack} />
+                  </td>
                   <td className="mono">{event.url}</td>
                   <td className="mono">{fmt(event.createdAt)}</td>
                 </tr>

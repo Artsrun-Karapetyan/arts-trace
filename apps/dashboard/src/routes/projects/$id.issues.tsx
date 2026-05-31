@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchProjectIssues, fmt } from "../../lib";
@@ -16,6 +16,7 @@ type SeverityFilter = "all" | "high" | "mid";
 
 function ProjectIssuesPage() {
   const issues = Route.useLoaderData();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { id } = Route.useParams();
   const [filter, setFilter] = useState<SeverityFilter>("all");
@@ -106,7 +107,14 @@ function ProjectIssuesPage() {
               {filteredIssues.map((issue) => {
                 const severity = severityByCount(issue.count);
                 return (
-                  <tr key={issue.id}>
+                  <tr
+                    key={issue.id}
+                    className="clickable-row"
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest("a, button")) return;
+                      navigate({ to: "/issues/$id", params: { id: issue.id }, search: { pid: id } });
+                    }}
+                  >
                     <td>
                       <Link className="link-strong" to="/issues/$id" params={{ id: issue.id }} search={{ pid: id }}>
                         {issue.message}

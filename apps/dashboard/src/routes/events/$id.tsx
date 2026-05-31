@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchEvent, fmt } from "../../lib";
+import { SourceLocation } from "../../components/SourceLocation";
 
 export const Route = createFileRoute("/events/$id")({
   loader: ({ params }) => fetchEvent(params.id),
@@ -123,7 +124,9 @@ function EventDetailPage() {
             </div>
             <div className="event-info-content">
               <div className="event-info-label">{t("common.source")}</div>
-              <div className="event-info-value mono">{event.fileName ? `${event.fileName}:${event.line ?? "?"}:${event.column ?? "?"}` : "-"}</div>
+              <div className="event-info-value">
+                <SourceLocation fileName={event.fileName} line={event.line} column={event.column} stack={event.stack} />
+              </div>
             </div>
           </div>
 

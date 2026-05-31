@@ -143,5 +143,5 @@ export async function fetchEvent(eventId: string): Promise<EventRow> {
 }
 
 export function fmt(iso: string): string {
-  return new Date(iso).toLocaleString();
+  return new Date(iso).toLocaleString(undefined, { hour12: false });
 }

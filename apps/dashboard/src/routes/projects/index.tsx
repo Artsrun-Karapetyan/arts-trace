@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createProject, fetchProjects, fmt, type ProjectRow } from "../../lib";
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/projects/")({
 
 function ProjectsPage() {
   const initialProjects = Route.useLoaderData();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [projects, setProjects] = useState<ProjectRow[]>(initialProjects);
   const [name, setName] = useState("");
@@ -151,7 +152,14 @@ init({
       ) : (
         <div className="project-card-list">
           {projects.map((project) => (
-            <article key={project.id} className="project-card">
+            <article
+              key={project.id}
+              className="project-card clickable-row"
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("a, button")) return;
+                navigate({ to: "/projects/$id/issues", params: { id: project.id } });
+              }}
+            >
               <div className="project-card-head">
                 <Link className="project-card-title" to="/projects/$id/issues" params={{ id: project.id }}>
                   {project.name}
