@@ -15,6 +15,11 @@ export class AppController {
     return this.appService.createEvent(body);
   }
 
+  @Post("sourcemaps")
+  uploadSourceMap(@Body() body: unknown) {
+    return this.appService.uploadSourceMap(body);
+  }
+
   @Post("events/:id/replay")
   uploadReplay(@Param("id") id: string, @Body() body: unknown) {
     return this.appService.uploadReplay(id, body);

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ingestEventSchema, uploadReplaySchema } from "@artstrace/shared";
+import { ingestEventSchema, uploadReplaySchema, uploadSourceMapSchema } from "@artstrace/shared";
 import { prisma } from "@artstrace/database";
 import type { Prisma } from "@artstrace/database";
 import { createHash, randomBytes } from "node:crypto";
@@ -47,6 +47,8 @@ export class AppService {
 
     const fingerprint = getFingerprint(parsed.data.message, parsed.data.stack);
     const source = await getSource(
+      project.id,
+      parsed.data.release,
       parsed.data.filePath,
       parsed.data.fileName,
       parsed.data.line,
@@ -148,6 +150,42 @@ export class AppService {
       },
       update: {
         events: parsed.data.replayEvents as Prisma.InputJsonValue
+      }
+    });
+
+    return { success: true };
+  }
+
+  async uploadSourceMap(body: unknown) {
+    const parsed = uploadSourceMapSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { apiKey: parsed.data.apiKey }
+    });
+    if (!project) {
+      throw new NotFoundException("Project not found");
+    }
+
+    const fileName = normalizeFileName(parsed.data.fileName);
+    await prisma.sourceMap.upsert({
+      where: {
+        projectId_release_fileName: {
+          projectId: project.id,
+          release: parsed.data.release,
+          fileName
+        }
+      },
+      create: {
+        projectId: project.id,
+        release: parsed.data.release,
+        fileName,
+        content: parsed.data.content
+      },
+      update: {
+        content: parsed.data.content
       }
     });
 
@@ -334,14 +372,16 @@ function getFingerprint(message: string, stack?: string): string {
 }
 
 async function getSource(
+  projectId: string,
+  release: string | undefined,
   filePath?: string,
   fileName?: string,
   line?: number,
   column?: number,
   stack?: string
 ): Promise<{ fileName: string; line: number; column: number } | null> {
-  if (filePath && line && column) {
-    const mapped = await mapWithSourceMap(filePath, line, column);
+  if (projectId && release && filePath && line && column) {
+    const mapped = await mapWithSourceMap(projectId, release, filePath, line, column);
     if (mapped) return mapped;
   }
 
@@ -560,12 +600,14 @@ async function hasNetworkInspectorColumns(): Promise<boolean> {
 const sourceMapCache = new Map<string, string>();
 
 async function mapWithSourceMap(
+  projectId: string,
+  release: string,
   filePath: string,
   line: number,
   column: number
 ): Promise<{ fileName: string; line: number; column: number } | null> {
   try {
-    const mapRaw = await loadSourceMapFromModule(filePath);
+    const mapRaw = await loadSourceMapFromDb(projectId, release, filePath);
     if (!mapRaw) return null;
 
     const consumer = await new SourceMapConsumer(JSON.parse(mapRaw));
@@ -584,20 +626,30 @@ async function mapWithSourceMap(
   }
 }
 
-async function loadSourceMapFromModule(filePath: string): Promise<string | null> {
-  const normalized = filePath.trim();
-  if (sourceMapCache.has(normalized)) return sourceMapCache.get(normalized) ?? null;
+async function loadSourceMapFromDb(projectId: string, release: string, filePath: string): Promise<string | null> {
+  const normalized = normalizeFileName(filePath);
+  const cacheKey = `${projectId}:${release}:${normalized}`;
+  if (sourceMapCache.has(cacheKey)) return sourceMapCache.get(cacheKey) ?? null;
 
-  const response = await fetch(normalized);
-  if (!response.ok) return null;
-  const code = await response.text();
+  const sourceMap = await prisma.sourceMap.findUnique({
+    where: {
+      projectId_release_fileName: {
+        projectId,
+        release,
+        fileName: normalized
+      }
+    },
+    select: { content: true }
+  });
+  if (!sourceMap) return null;
 
-  const match = code.match(/sourceMappingURL=data:application\/json;base64,([A-Za-z0-9+/=]+)/);
-  if (!match) return null;
+  sourceMapCache.set(cacheKey, sourceMap.content);
+  return sourceMap.content;
+}
 
-  const raw = Buffer.from(match[1], "base64").toString("utf8");
-  sourceMapCache.set(normalized, raw);
-  return raw;
+function normalizeFileName(filePathOrName: string): string {
+  const noQuery = filePathOrName.split("?")[0]?.split("#")[0] ?? filePathOrName;
+  return noQuery.split("/").pop() ?? noQuery;
 }
 
 async function generateUniqueApiKey(): Promise<string> {

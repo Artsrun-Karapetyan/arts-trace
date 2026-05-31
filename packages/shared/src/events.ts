@@ -22,6 +22,7 @@ export const networkRequestSchema = z.object({
 
 export const ingestEventSchema = z.object({
   apiKey: z.string().min(1),
+  release: z.string().min(1).max(200).optional(),
   message: z.string().min(1),
   stack: z.string().optional(),
   filePath: z.string().optional(),
@@ -38,6 +39,15 @@ export const ingestEventSchema = z.object({
 });
 
 export type IngestEventInput = z.infer<typeof ingestEventSchema>;
+
+export const uploadSourceMapSchema = z.object({
+  apiKey: z.string().min(1),
+  release: z.string().min(1).max(200),
+  fileName: z.string().min(1).max(500),
+  content: z.string().min(2)
+});
+
+export type UploadSourceMapInput = z.infer<typeof uploadSourceMapSchema>;
 
 export const uploadReplaySchema = z.object({
   apiKey: z.string().min(1),

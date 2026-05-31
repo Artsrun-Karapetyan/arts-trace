@@ -2,6 +2,7 @@ import { record } from "rrweb";
 
 type IngestEventInput = {
   apiKey: string;
+  release?: string;
   message: string;
   stack?: string;
   filePath?: string;
@@ -37,6 +38,7 @@ type InitOptions = {
   apiKey: string;
   endpoint?: string;
   userId?: string;
+  release?: string;
   replayPreErrorMs?: number;
   replayPostErrorMs?: number;
 };
@@ -104,6 +106,7 @@ export function init(options: InitOptions): void {
 
     const payload: IngestEventInput = {
       apiKey: options.apiKey,
+      release: options.release,
       message: event.message || "Unknown error",
       stack: event.error?.stack,
       filePath: source?.filePath,
@@ -130,6 +133,7 @@ export function init(options: InitOptions): void {
 
     const payload: IngestEventInput = {
       apiKey: options.apiKey,
+      release: options.release,
       message,
       stack,
       filePath: source?.filePath,
