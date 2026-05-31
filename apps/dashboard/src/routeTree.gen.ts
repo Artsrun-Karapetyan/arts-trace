@@ -9,17 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TestRouteImport } from './routes/test'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as IssuesIdRouteImport } from './routes/issues/$id'
 import { Route as EventsIdRouteImport } from './routes/events/$id'
+import { Route as ProjectsIdSettingsRouteImport } from './routes/projects/$id.settings'
+import { Route as ProjectsIdIssuesRouteImport } from './routes/projects/$id.issues'
 import { Route as ProjectsIdEventsRouteImport } from './routes/projects/$id.events'
 
-const TestRoute = TestRouteImport.update({
-  id: '/test',
-  path: '/test',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -30,9 +27,24 @@ const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   path: '/projects/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IssuesIdRoute = IssuesIdRouteImport.update({
+  id: '/issues/$id',
+  path: '/issues/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsIdRoute = EventsIdRouteImport.update({
   id: '/events/$id',
   path: '/events/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdSettingsRoute = ProjectsIdSettingsRouteImport.update({
+  id: '/projects/$id/settings',
+  path: '/projects/$id/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdIssuesRoute = ProjectsIdIssuesRouteImport.update({
+  id: '/projects/$id/issues',
+  path: '/projects/$id/issues',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIdEventsRoute = ProjectsIdEventsRouteImport.update({
@@ -43,62 +55,74 @@ const ProjectsIdEventsRoute = ProjectsIdEventsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/test': typeof TestRoute
   '/events/$id': typeof EventsIdRoute
+  '/issues/$id': typeof IssuesIdRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$id/events': typeof ProjectsIdEventsRoute
+  '/projects/$id/issues': typeof ProjectsIdIssuesRoute
+  '/projects/$id/settings': typeof ProjectsIdSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/test': typeof TestRoute
   '/events/$id': typeof EventsIdRoute
+  '/issues/$id': typeof IssuesIdRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$id/events': typeof ProjectsIdEventsRoute
+  '/projects/$id/issues': typeof ProjectsIdIssuesRoute
+  '/projects/$id/settings': typeof ProjectsIdSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/test': typeof TestRoute
   '/events/$id': typeof EventsIdRoute
+  '/issues/$id': typeof IssuesIdRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$id/events': typeof ProjectsIdEventsRoute
+  '/projects/$id/issues': typeof ProjectsIdIssuesRoute
+  '/projects/$id/settings': typeof ProjectsIdSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/test'
     | '/events/$id'
+    | '/issues/$id'
     | '/projects/'
     | '/projects/$id/events'
+    | '/projects/$id/issues'
+    | '/projects/$id/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/test' | '/events/$id' | '/projects' | '/projects/$id/events'
+  to:
+    | '/'
+    | '/events/$id'
+    | '/issues/$id'
+    | '/projects'
+    | '/projects/$id/events'
+    | '/projects/$id/issues'
+    | '/projects/$id/settings'
   id:
     | '__root__'
     | '/'
-    | '/test'
     | '/events/$id'
+    | '/issues/$id'
     | '/projects/'
     | '/projects/$id/events'
+    | '/projects/$id/issues'
+    | '/projects/$id/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  TestRoute: typeof TestRoute
   EventsIdRoute: typeof EventsIdRoute
+  IssuesIdRoute: typeof IssuesIdRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ProjectsIdEventsRoute: typeof ProjectsIdEventsRoute
+  ProjectsIdIssuesRoute: typeof ProjectsIdIssuesRoute
+  ProjectsIdSettingsRoute: typeof ProjectsIdSettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/test': {
-      id: '/test'
-      path: '/test'
-      fullPath: '/test'
-      preLoaderRoute: typeof TestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -113,11 +137,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/issues/$id': {
+      id: '/issues/$id'
+      path: '/issues/$id'
+      fullPath: '/issues/$id'
+      preLoaderRoute: typeof IssuesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/$id': {
       id: '/events/$id'
       path: '/events/$id'
       fullPath: '/events/$id'
       preLoaderRoute: typeof EventsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/settings': {
+      id: '/projects/$id/settings'
+      path: '/projects/$id/settings'
+      fullPath: '/projects/$id/settings'
+      preLoaderRoute: typeof ProjectsIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/issues': {
+      id: '/projects/$id/issues'
+      path: '/projects/$id/issues'
+      fullPath: '/projects/$id/issues'
+      preLoaderRoute: typeof ProjectsIdIssuesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$id/events': {
@@ -132,10 +177,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  TestRoute: TestRoute,
   EventsIdRoute: EventsIdRoute,
+  IssuesIdRoute: IssuesIdRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ProjectsIdEventsRoute: ProjectsIdEventsRoute,
+  ProjectsIdIssuesRoute: ProjectsIdIssuesRoute,
+  ProjectsIdSettingsRoute: ProjectsIdSettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

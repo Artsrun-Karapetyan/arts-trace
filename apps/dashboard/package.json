@@ -10,18 +10,21 @@
     "routegen": "tsr generate"
   },
   "dependencies": {
+    "@artstrace/browser": "workspace:*",
     "@tanstack/react-router": "^1.170.10",
+    "i18next": "^25.2.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "@artstrace/browser": "workspace:*"
+    "react-i18next": "^15.6.0",
+    "rrweb-player": "2.0.0-alpha.18"
   },
   "devDependencies": {
+    "@tanstack/router-cli": "^1.167.12",
     "@tanstack/router-plugin": "^1.168.13",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "typescript": "^6.0.3",
-    "vite": "^8.0.14",
-    "@tanstack/router-cli": "^1.167.12"
+    "vite": "^8.0.14"
   }
 }

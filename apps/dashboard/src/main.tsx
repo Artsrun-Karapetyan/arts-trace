@@ -2,7 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import "rrweb-player/dist/style.css";
 import "./styles.css";
+import "./i18n";
 
 const router = createRouter({ routeTree });
 

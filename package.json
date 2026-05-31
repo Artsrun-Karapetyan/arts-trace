@@ -7,14 +7,17 @@
     "i": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 npx --yes pnpm@11.5.0 install --no-frozen-lockfile",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
-    "db:migrate": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:migrate -- --name init",
+    "db:reset": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:reset",
+    "db:migrate": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:migrate -- ",
+    "db:migrate:new": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:migrate -- --name",
     "db:seed": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:seed",
     "db:generate": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:generate",
     "dev:api": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/api dev",
     "dev:dashboard": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 npx --yes pnpm@11.5.0 --filter @artstrace/dashboard dev",
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "dev:playground": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 npx --yes pnpm@11.5.0 --filter @artstrace/playground dev"
   },
   "devDependencies": {
     "dotenv-cli": "^10.0.0"
