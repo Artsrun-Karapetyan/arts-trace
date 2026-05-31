@@ -1,29 +1,39 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { fetchProjectEvents, fmt } from "../../lib";
+import { fetchIssue, fetchIssueEvents, fmt } from "../../lib";
 
-export const Route = createFileRoute("/projects/$id/events")({
-  loader: ({ params }) => fetchProjectEvents(params.id),
-  component: ProjectEventsPage
+export const Route = createFileRoute("/issues/$id")({
+  loader: async ({ params }) => {
+    const [issue, events] = await Promise.all([
+      fetchIssue(params.id),
+      fetchIssueEvents(params.id)
+    ]);
+
+    return { issue, events };
+  },
+  component: IssueDetailPage
 });
 
-function ProjectEventsPage() {
-  const events = Route.useLoaderData();
+function IssueDetailPage() {
+  const { issue, events } = Route.useLoaderData();
   const { t } = useTranslation();
-  const { id } = Route.useParams();
 
   return (
     <div>
       <div className="page-head">
-        <h2>{t("events.title")}</h2>
-        <div className="project-actions">
-          <Link className="btn btn-ghost" to="/projects/$id/issues" params={{ id }}>
-            Issues
-          </Link>
-          <Link className="icon-btn" to="/projects/$id/settings" params={{ id }} aria-label="Project settings">
-            ⚙
-          </Link>
+        <h2>{t("issues.detail")}</h2>
+      </div>
+      <div className="card">
+        <div className="meta-grid">
+          <p><strong>{t("common.message")}:</strong> {issue.message}</p>
+          <p><strong>{t("common.count")}:</strong> {issue.count}</p>
+          <p><strong>{t("common.firstSeen")}:</strong> <span className="mono">{fmt(issue.firstSeen)}</span></p>
+          <p><strong>{t("common.lastSeen")}:</strong> <span className="mono">{fmt(issue.lastSeen)}</span></p>
         </div>
+      </div>
+
+      <div className="page-head" style={{ marginTop: 16 }}>
+        <h2>{t("issues.latestEvents")}</h2>
       </div>
       <div className="panel">
         <table className="table">

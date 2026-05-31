@@ -8,13 +8,16 @@
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:migrate": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:migrate -- --name init",
+    "db:migrate:issue": "DATABASE_URL='postgresql://postgres:postgres@localhost:5432/artstrace?schema=public' PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 pnpm --filter @artstrace/database prisma:migrate -- --name issue_grouping",
+    "db:migrate:replay": "DATABASE_URL='postgresql://postgres:postgres@localhost:5432/artstrace?schema=public' PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 pnpm --filter @artstrace/database prisma:migrate -- --name replay_video",
     "db:seed": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:seed",
     "db:generate": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:generate",
     "dev:api": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/api dev",
     "dev:dashboard": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 npx --yes pnpm@11.5.0 --filter @artstrace/dashboard dev",
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "dev:playground": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 npx --yes pnpm@11.5.0 --filter @artstrace/playground dev"
   },
   "devDependencies": {
     "dotenv-cli": "^10.0.0"
