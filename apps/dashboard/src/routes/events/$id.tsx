@@ -15,6 +15,8 @@ function EventDetailPage() {
   const [currentReplayMs, setCurrentReplayMs] = useState<number>(0);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [showFutureRequests, setShowFutureRequests] = useState(false);
+  const [networkTab, setNetworkTab] = useState<"headers" | "payload" | "preview">("headers");
+  const [showAllBreadcrumbs, setShowAllBreadcrumbs] = useState(false);
   const replayEvents = (event.replays?.[0]?.events ?? []) as Array<Record<string, unknown>>;
   const replayStartTs = useMemo(() => {
     const first = replayEvents.find((item) => typeof item.timestamp === "number");
@@ -27,11 +29,15 @@ function EventDetailPage() {
     return networkRows.filter((item) => new Date(item.createdAt).getTime() <= replayNowTs + 250);
   }, [networkRows, replayNowTs, showFutureRequests]);
   const selectedRequest = visibleNetworkRows.find((item) => item.id === selectedRequestId) ?? visibleNetworkRows[0] ?? null;
+  const breadcrumbs = event.breadcrumbs ?? [];
+  const breadcrumbLimit = 10;
+  const visibleBreadcrumbs = showAllBreadcrumbs ? breadcrumbs : breadcrumbs.slice(-breadcrumbLimit);
   useEffect(() => {
     if (!replayRef.current || replayEvents.length === 0) return;
 
     let disposed = false;
     let player: { $destroy?: () => void; addEventListener?: (name: string, fn: (event: unknown) => void) => void } | null = null;
+    let onResize: (() => void) | null = null;
     const onTimeUpdate = (eventLike: unknown) => {
       const payload = typeof eventLike === "object" && eventLike !== null && "payload" in (eventLike as Record<string, unknown>)
         ? (eventLike as { payload?: unknown }).payload
@@ -41,23 +47,35 @@ function EventDetailPage() {
 
     void import("rrweb-player").then(({ default: RRWebPlayer }) => {
       if (disposed || !replayRef.current) return;
-      replayRef.current.innerHTML = "";
-      player = new RRWebPlayer({
-        target: replayRef.current,
-        props: {
-          events: replayEvents as never[],
-          autoPlay: false,
-          skipInactive: false,
-          inactivePeriodThreshold: 120_000,
-          width: Math.min(replayRef.current.clientWidth - 24, 1100),
-          height: 520
-        }
-      }) as unknown as { $destroy?: () => void; addEventListener?: (name: string, fn: (event: unknown) => void) => void };
-      player.addEventListener?.("ui-update-current-time", onTimeUpdate);
+
+      const mount = () => {
+        if (!replayRef.current) return;
+        const width = Math.max(560, replayRef.current.clientWidth - 4);
+        const height = Math.max(640, Math.floor(width * 0.68));
+        if (player?.$destroy) player.$destroy();
+        replayRef.current.innerHTML = "";
+        player = new RRWebPlayer({
+          target: replayRef.current,
+          props: {
+            events: replayEvents as never[],
+            autoPlay: false,
+            skipInactive: false,
+            inactivePeriodThreshold: 120_000,
+            width,
+            height
+          }
+        }) as unknown as { $destroy?: () => void; addEventListener?: (name: string, fn: (event: unknown) => void) => void };
+        player.addEventListener?.("ui-update-current-time", onTimeUpdate);
+      };
+
+      mount();
+      onResize = () => mount();
+      window.addEventListener("resize", onResize);
     });
 
     return () => {
       disposed = true;
+      if (onResize) window.removeEventListener("resize", onResize);
       if (player?.$destroy) player.$destroy();
       if (replayRef.current) replayRef.current.innerHTML = "";
     };
@@ -139,16 +157,68 @@ function EventDetailPage() {
             </div>
             {selectedRequest ? (
               <div className="network-detail">
-                <p><strong>Preview</strong></p>
-                <pre>{buildNetworkPreview(selectedRequest)}</pre>
-                <div className="network-raw-grid">
-                  <div>
-                    <p><strong>Payload Body</strong></p>
-                    <JsonInspector
-                      value={toInspectableValue(selectedRequest.requestBody || selectedRequest.responseBody || selectedRequest.error || "-")}
-                    />
-                  </div>
+                <div className="network-tabs">
+                  <button
+                    type="button"
+                    className={`network-tab ${networkTab === "headers" ? "network-tab-active" : ""}`}
+                    onClick={() => setNetworkTab("headers")}
+                  >
+                    Headers
+                  </button>
+                  <button
+                    type="button"
+                    className={`network-tab ${networkTab === "payload" ? "network-tab-active" : ""}`}
+                    onClick={() => setNetworkTab("payload")}
+                  >
+                    Payload
+                  </button>
+                  <button
+                    type="button"
+                    className={`network-tab ${networkTab === "preview" ? "network-tab-active" : ""}`}
+                    onClick={() => setNetworkTab("preview")}
+                  >
+                    Preview
+                  </button>
                 </div>
+
+                {networkTab === "headers" ? (
+                  <div className="network-general">
+                    <div className="network-detail-row">
+                      <span className="small-note">Request URL</span>
+                      <span className="mono">{selectedRequest.url}</span>
+                    </div>
+                    <div className="network-detail-row">
+                      <span className="small-note">Request Method</span>
+                      <span>{selectedRequest.method}</span>
+                    </div>
+                    <div className="network-detail-row">
+                      <span className="small-note">Status Code</span>
+                      <span>{selectedRequest.status ?? "-"}</span>
+                    </div>
+                    <div className="network-detail-row">
+                      <span className="small-note">Duration</span>
+                      <span>{selectedRequest.duration ?? "-"} ms</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                {networkTab === "payload" ? (
+                  <div className="network-raw-grid">
+                    <div>
+                      <p><strong>Request Payload</strong></p>
+                      <JsonInspector value={toInspectableValue(selectedRequest.requestBody || "-")} />
+                    </div>
+                  </div>
+                ) : null}
+
+                {networkTab === "preview" ? (
+                  <div className="network-raw-grid">
+                    <div>
+                      <p><strong>Response Preview</strong></p>
+                      <JsonInspector value={toInspectableValue(selectedRequest.responseBody || selectedRequest.error || "-")} />
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -156,6 +226,11 @@ function EventDetailPage() {
 
         <div className="page-head" style={{ marginTop: 16 }}>
           <h2 style={{ fontSize: 18 }}>Breadcrumbs</h2>
+          {breadcrumbs.length > breadcrumbLimit ? (
+            <button className="btn btn-ghost" onClick={() => setShowAllBreadcrumbs((v) => !v)}>
+              {showAllBreadcrumbs ? "Show less" : `Show more (${breadcrumbs.length - breadcrumbLimit})`}
+            </button>
+          ) : null}
         </div>
         <div className="panel">
           <table className="table">
@@ -167,7 +242,7 @@ function EventDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {(event.breadcrumbs ?? []).map((b) => (
+              {visibleBreadcrumbs.map((b) => (
                 <tr key={b.id}>
                   <td className="mono">{fmt(b.createdAt)}</td>
                   <td>{b.type}</td>
@@ -190,20 +265,6 @@ function jsonPretty(value: unknown): string {
   } catch {
     return String(value);
   }
-}
-
-function buildNetworkPreview(request: {
-  method: string;
-  url: string;
-  status?: number | null;
-  duration?: number | null;
-}): string {
-  return [
-    `method: ${request.method}`,
-    `url: ${request.url}`,
-    `status: ${request.status ?? "-"}`,
-    `durationMs: ${request.duration ?? "-"}`
-  ].join("\n");
 }
 
 function toInspectableValue(raw: string): unknown {

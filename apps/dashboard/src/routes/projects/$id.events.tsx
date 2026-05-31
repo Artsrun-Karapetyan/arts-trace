@@ -39,7 +39,7 @@ function ProjectEventsPage() {
             {events.map((event) => (
               <tr key={event.id}>
                 <td>
-                  <Link className="link-strong" to="/events/$id" params={{ id: event.id }}>
+                  <Link className="link-strong" to="/events/$id" params={{ id: event.id }} search={{ pid: id }}>
                     {event.message}
                   </Link>
                 </td>

@@ -132,36 +132,40 @@ init({
         </div>
       </section>
 
-      <div className="panel">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t("projects.name")}</th>
-              <th>{t("projects.totalErrors")}</th>
-              <th>{t("projects.errorsToday")}</th>
-              <th>{t("common.created")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {projects.map((project) => (
-              <tr key={project.id}>
-              <td>
-                <Link className="link-strong" to="/projects/$id/issues" params={{ id: project.id }}>
-                  {project.name}
-                </Link>
-                <div className="small-note">
-                  <Link className="link-strong" to="/projects/$id/settings" params={{ id: project.id }}>
-                    Project Settings
-                  </Link>
-                </div>
-              </td>
-                <td>{project.totalErrors}</td>
-                <td>{project.errorsToday}</td>
-                <td className="mono">{fmt(project.createdAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="project-card-list">
+        {projects.map((project) => (
+          <article key={project.id} className="project-card">
+            <div className="project-card-head">
+              <Link className="project-card-title" to="/projects/$id/issues" params={{ id: project.id }}>
+                {project.name}
+              </Link>
+              <span className="mono small-note">{fmt(project.createdAt)}</span>
+            </div>
+
+            <div className="project-card-metrics">
+              <div>
+                <div className="small-note">{t("projects.totalErrors")}</div>
+                <div className="project-card-value">{project.totalErrors}</div>
+              </div>
+              <div>
+                <div className="small-note">{t("projects.errorsToday")}</div>
+                <div className="project-card-value">{project.errorsToday}</div>
+              </div>
+            </div>
+
+            <div className="project-card-actions">
+              <Link className="btn btn-ghost" to="/projects/$id/issues" params={{ id: project.id }}>
+                Issues
+              </Link>
+              <Link className="btn btn-ghost" to="/projects/$id/events" params={{ id: project.id }}>
+                Events
+              </Link>
+              <Link className="btn btn-ghost" to="/projects/$id/settings" params={{ id: project.id }}>
+                Settings
+              </Link>
+            </div>
+          </article>
+        ))}
       </div>
     </div>
   );

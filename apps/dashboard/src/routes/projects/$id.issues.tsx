@@ -47,7 +47,7 @@ function ProjectIssuesPage() {
               return (
                 <tr key={issue.id}>
                   <td>
-                    <Link className="link-strong" to="/issues/$id" params={{ id: issue.id }}>
+                    <Link className="link-strong" to="/issues/$id" params={{ id: issue.id }} search={{ pid: id }}>
                       {issue.message}
                     </Link>
                   </td>
