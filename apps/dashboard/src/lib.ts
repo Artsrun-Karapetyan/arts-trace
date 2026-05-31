@@ -36,6 +36,7 @@ export type IssueRow = {
   fingerprint: string;
   message: string;
   count: number;
+  usersCount: number;
   firstSeen: string;
   lastSeen: string;
 };

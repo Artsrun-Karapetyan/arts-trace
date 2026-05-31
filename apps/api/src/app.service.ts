@@ -87,6 +87,7 @@ export class AppService {
         column: source?.column,
         url: parsed.data.url,
         userAgent: parsed.data.userAgent,
+        userId: parsed.data.userId,
         createdAt: new Date(parsed.data.timestamp)
       }
     });
@@ -242,16 +243,54 @@ export class AppService {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException("Project not found");
 
-    return prisma.issue.findMany({
+    const issues = await prisma.issue.findMany({
       where: { projectId },
       orderBy: { lastSeen: "desc" }
     });
+
+    const events = await prisma.event.findMany({
+      where: {
+        projectId,
+        issueId: { in: issues.map((i) => i.id) }
+      },
+      select: {
+        issueId: true,
+        userId: true
+      }
+    });
+
+    const uniqueUsersMap: Record<string, Set<string>> = {};
+    for (const e of events) {
+      if (!e.issueId) continue;
+      if (!uniqueUsersMap[e.issueId]) {
+        uniqueUsersMap[e.issueId] = new Set();
+      }
+      if (e.userId) {
+        uniqueUsersMap[e.issueId].add(e.userId);
+      }
+    }
+
+    return issues.map((issue) => ({
+      ...issue,
+      usersCount: uniqueUsersMap[issue.id]?.size ?? 0
+    }));
   }
 
   async getIssue(issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
-    return issue;
+
+    const uniqueUsers = await prisma.event.findMany({
+      where: { issueId },
+      select: { userId: true }
+    });
+
+    const uniqueCount = new Set(uniqueUsers.map((u) => u.userId).filter(Boolean)).size;
+
+    return {
+      ...issue,
+      usersCount: uniqueCount
+    };
   }
 
   async getIssueEvents(issueId: string) {

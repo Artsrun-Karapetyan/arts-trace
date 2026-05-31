@@ -98,6 +98,7 @@ function ProjectIssuesPage() {
               <tr>
                 <th>{t("common.message")}</th>
                 <th>{t("common.count")}</th>
+                <th>{t("common.users")}</th>
                 <th>Severity</th>
                 <th>{t("common.firstSeen")}</th>
                 <th>{t("common.lastSeen")}</th>
@@ -121,6 +122,7 @@ function ProjectIssuesPage() {
                       </Link>
                     </td>
                     <td>{issue.count}</td>
+                    <td>{issue.usersCount}</td>
                     <td>
                       <span className={`chip ${severity === "high" ? "chip-high" : "chip-mid"}`}>
                         {severity.toUpperCase()}

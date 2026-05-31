@@ -13,6 +13,8 @@ const resources = {
         url: "URL",
         created: "Created",
         count: "Count",
+        users: "Users",
+        usersAffected: "Users Affected",
         firstSeen: "First Seen",
         lastSeen: "Last Seen",
         noStack: "No stack trace"
@@ -48,6 +50,8 @@ const resources = {
         url: "URL",
         created: "Ստեղծվել է",
         count: "Քանակ",
+        users: "Օգտատերեր",
+        usersAffected: "Օգտատերեր",
         firstSeen: "Առաջին անգամ",
         lastSeen: "Վերջին անգամ",
         noStack: "Stack trace չկա"

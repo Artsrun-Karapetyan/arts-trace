@@ -29,6 +29,7 @@ function IssueDetailPage() {
         <div className="meta-grid">
           <p><strong>{t("common.message")}:</strong> {issue.message}</p>
           <p><strong>{t("common.count")}:</strong> {issue.count}</p>
+          <p><strong>{t("common.usersAffected")}:</strong> {issue.usersCount}</p>
           <p><strong>{t("common.firstSeen")}:</strong> <span className="mono">{fmt(issue.firstSeen)}</span></p>
           <p><strong>{t("common.lastSeen")}:</strong> <span className="mono">{fmt(issue.lastSeen)}</span></p>
         </div>

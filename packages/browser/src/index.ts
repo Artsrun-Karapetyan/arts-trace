@@ -11,6 +11,7 @@ type IngestEventInput = {
   url: string;
   userAgent: string;
   timestamp: string;
+  userId?: string;
   breadcrumbs?: Array<{
     type: string;
     message: string;
@@ -35,6 +36,7 @@ type IngestEventInput = {
 type InitOptions = {
   apiKey: string;
   endpoint?: string;
+  userId?: string;
   replayPreErrorMs?: number;
   replayPostErrorMs?: number;
 };
@@ -60,11 +62,33 @@ const networkRequests: NetworkRequest[] = [];
 const replayEvents: Array<Record<string, unknown>> = [];
 let stopReplay: (() => void) | null = null;
 
+let currentUserId: string | undefined = undefined;
+
+export function setUser(id: string): void {
+  currentUserId = id;
+}
+
+function getOrCreateSessionId(): string {
+  try {
+    let id = localStorage.getItem("artstrace_session_id");
+    if (!id) {
+      id = "anon_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem("artstrace_session_id", id);
+    }
+    return id;
+  } catch {
+    return "anon_temp_" + Math.random().toString(36).slice(2);
+  }
+}
+
 export function init(options: InitOptions): void {
   if (isInitialized) return;
   if (!options.apiKey) throw new Error("ArtsTrace init requires apiKey");
 
   const endpoint = options.endpoint ?? DEFAULT_ENDPOINT;
+  if (options.userId) {
+    currentUserId = options.userId;
+  }
   replayPreErrorMs = normalizeDuration(options.replayPreErrorMs, DEFAULT_REPLAY_PRE_ERROR_MS, 2_000, 60_000);
   replayPostErrorMs = normalizeDuration(options.replayPostErrorMs, DEFAULT_REPLAY_POST_ERROR_MS, 0, 30_000);
 
@@ -89,6 +113,7 @@ export function init(options: InitOptions): void {
       url: window.location.href,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
+      userId: currentUserId ?? getOrCreateSessionId(),
       breadcrumbs: snapshotBreadcrumbs(),
       networkRequests: snapshotNetwork(),
       replayEvents: snapshotReplay()
@@ -114,6 +139,7 @@ export function init(options: InitOptions): void {
       url: window.location.href,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
+      userId: currentUserId ?? getOrCreateSessionId(),
       breadcrumbs: snapshotBreadcrumbs(),
       networkRequests: snapshotNetwork(),
       replayEvents: snapshotReplay()

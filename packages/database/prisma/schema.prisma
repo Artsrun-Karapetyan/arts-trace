@@ -49,6 +49,7 @@ model Event {
   column    Int?
   url       String
   userAgent String?
+  userId    String?
 
   createdAt DateTime @default(now())
 
