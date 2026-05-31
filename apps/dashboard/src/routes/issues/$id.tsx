@@ -36,6 +36,16 @@ function IssueDetailPage() {
       </div>
 
       <hr className="section-sep" />
+      <div className="page-head" style={{ marginTop: 0 }}>
+        <h2>Environment Analytics</h2>
+      </div>
+      <div className="issue-env-grid">
+        <BreakdownCard title="Browsers" items={issue.environment?.browsers ?? []} />
+        <BreakdownCard title="Operating Systems" items={issue.environment?.os ?? []} />
+        <BreakdownCard title="Devices" items={issue.environment?.devices ?? []} />
+      </div>
+
+      <hr className="section-sep" />
 
       <div className="page-head" style={{ marginTop: 0 }}>
         <h2>{t("issues.latestEvents")}</h2>
@@ -82,6 +92,42 @@ function IssueDetailPage() {
           </table>
         )}
       </div>
+    </div>
+  );
+}
+
+function BreakdownCard({
+  title,
+  items
+}: {
+  title: string;
+  items: Array<{ name: string; count: number; percent: number }>;
+}) {
+  const total = items.reduce((sum, item) => sum + item.count, 0);
+  return (
+    <div className="panel issue-breakdown-card">
+      <div className="issue-breakdown-head">
+        <h3>{title}</h3>
+        <span className="mono">{total} events</span>
+      </div>
+      {items.length === 0 ? (
+        <div className="empty-panel">No data yet</div>
+      ) : (
+        <div className="issue-breakdown-list">
+          {items.map((item) => (
+            <div key={item.name} className="issue-breakdown-row">
+              <div className="issue-breakdown-label-row">
+                <span>{item.name}</span>
+                <span className="mono">{item.percent}%</span>
+              </div>
+              <div className="issue-breakdown-bar-track">
+                <div className="issue-breakdown-bar-fill" style={{ width: `${Math.max(4, item.percent)}%` }} />
+              </div>
+              <div className="small-note" style={{ marginTop: 4 }}>{item.count} events</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

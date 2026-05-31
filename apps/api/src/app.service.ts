@@ -318,16 +318,21 @@ export class AppService {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
 
-    const uniqueUsers = await prisma.event.findMany({
+    const issueEvents = await prisma.event.findMany({
       where: { issueId },
-      select: { userId: true }
+      select: {
+        userId: true,
+        userAgent: true
+      }
     });
 
-    const uniqueCount = new Set(uniqueUsers.map((u) => u.userId).filter(Boolean)).size;
+    const uniqueCount = new Set(issueEvents.map((u) => u.userId).filter(Boolean)).size;
+    const environment = buildEnvironmentAnalytics(issueEvents.map((item) => item.userAgent));
 
     return {
       ...issue,
-      usersCount: uniqueCount
+      usersCount: uniqueCount,
+      environment
     };
   }
 
@@ -380,16 +385,31 @@ async function getSource(
   column?: number,
   stack?: string
 ): Promise<{ fileName: string; line: number; column: number } | null> {
+  if (!release) {
+    if (filePath && line && column) {
+      const mapped = await mapWithInlineSourceMap(filePath, line, column);
+      if (mapped) return mapped;
+    }
+    if (fileName && line && column) {
+      return { fileName, line, column };
+    }
+    return extractSourceFromStack(stack);
+  }
+
   if (projectId && release && filePath && line && column) {
     const mapped = await mapWithSourceMap(projectId, release, filePath, line, column);
     if (mapped) return mapped;
   }
 
+  // Prod fallback when sourcemap was not found.
+  const fromStack = extractSourceFromStack(stack);
+  if (fromStack) return fromStack;
+
   if (fileName && line && column) {
     return { fileName, line, column };
   }
 
-  return extractSourceFromStack(stack);
+  return null;
 }
 
 function extractSourceFromStack(stack?: string): { fileName: string; line: number; column: number } | null {
@@ -599,6 +619,20 @@ async function hasNetworkInspectorColumns(): Promise<boolean> {
 
 const sourceMapCache = new Map<string, string>();
 
+async function mapWithInlineSourceMap(
+  filePath: string,
+  line: number,
+  column: number
+): Promise<{ fileName: string; line: number; column: number } | null> {
+  try {
+    const mapRaw = await loadInlineSourceMap(filePath);
+    if (!mapRaw) return null;
+    return getOriginalPosition(mapRaw, line, column);
+  } catch {
+    return null;
+  }
+}
+
 async function mapWithSourceMap(
   projectId: string,
   release: string,
@@ -609,21 +643,37 @@ async function mapWithSourceMap(
   try {
     const mapRaw = await loadSourceMapFromDb(projectId, release, filePath);
     if (!mapRaw) return null;
-
-    const consumer = await new SourceMapConsumer(JSON.parse(mapRaw));
-    const original = consumer.originalPositionFor({ line, column });
-
-    if (!original.source || !original.line || !original.column) return null;
-
-    const sourceName = original.source.split("/").pop() ?? original.source;
-    return {
-      fileName: sourceName,
-      line: original.line,
-      column: original.column
-    };
+    return getOriginalPosition(mapRaw, line, column);
   } catch {
     return null;
   }
+}
+
+function getOriginalPosition(
+  mapRaw: string,
+  line: number,
+  column: number
+): { fileName: string; line: number; column: number } | null {
+  const consumer = new SourceMapConsumer(JSON.parse(mapRaw));
+  const original = consumer.originalPositionFor({ line, column });
+  if (!original.source || !original.line || original.column == null) return null;
+
+  return {
+    fileName: original.source.split("/").pop() ?? original.source,
+    line: original.line,
+    column: original.column
+  };
+}
+
+async function loadInlineSourceMap(filePath: string): Promise<string | null> {
+  const normalized = filePath.trim();
+  const response = await fetch(normalized);
+  if (!response.ok) return null;
+  const code = await response.text();
+  const match = code.match(/sourceMappingURL=data:application\/json;base64,([A-Za-z0-9+/=]+)/);
+  if (!match) return null;
+
+  return Buffer.from(match[1], "base64").toString("utf8");
 }
 
 async function loadSourceMapFromDb(projectId: string, release: string, filePath: string): Promise<string | null> {
@@ -650,6 +700,72 @@ async function loadSourceMapFromDb(projectId: string, release: string, filePath:
 function normalizeFileName(filePathOrName: string): string {
   const noQuery = filePathOrName.split("?")[0]?.split("#")[0] ?? filePathOrName;
   return noQuery.split("/").pop() ?? noQuery;
+}
+
+function buildEnvironmentAnalytics(userAgents: Array<string | null>): {
+  browsers: Array<{ name: string; count: number; percent: number }>;
+  os: Array<{ name: string; count: number; percent: number }>;
+  devices: Array<{ name: string; count: number; percent: number }>;
+} {
+  const browserCounts = new Map<string, number>();
+  const osCounts = new Map<string, number>();
+  const deviceCounts = new Map<string, number>();
+
+  let total = 0;
+  for (const raw of userAgents) {
+    if (!raw) continue;
+    total += 1;
+    const browser = detectBrowser(raw);
+    const os = detectOs(raw);
+    const device = detectDevice(raw);
+    browserCounts.set(browser, (browserCounts.get(browser) ?? 0) + 1);
+    osCounts.set(os, (osCounts.get(os) ?? 0) + 1);
+    deviceCounts.set(device, (deviceCounts.get(device) ?? 0) + 1);
+  }
+
+  return {
+    browsers: toSortedPercentList(browserCounts, total),
+    os: toSortedPercentList(osCounts, total),
+    devices: toSortedPercentList(deviceCounts, total)
+  };
+}
+
+function toSortedPercentList(counts: Map<string, number>, total: number): Array<{ name: string; count: number; percent: number }> {
+  if (total === 0) return [];
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, count]) => ({
+      name,
+      count,
+      percent: Math.round((count / total) * 100)
+    }));
+}
+
+function detectBrowser(ua: string): string {
+  const s = ua.toLowerCase();
+  if (s.includes("edg/")) return "Edge";
+  if (s.includes("opr/") || s.includes("opera")) return "Opera";
+  if (s.includes("firefox/")) return "Firefox";
+  if (s.includes("chrome/") && !s.includes("edg/") && !s.includes("opr/")) return "Chrome";
+  if (s.includes("safari/") && !s.includes("chrome/")) return "Safari";
+  return "Other";
+}
+
+function detectOs(ua: string): string {
+  const s = ua.toLowerCase();
+  if (s.includes("windows")) return "Windows";
+  if (s.includes("mac os") || s.includes("macintosh")) return "macOS";
+  if (s.includes("android")) return "Android";
+  if (s.includes("iphone") || s.includes("ipad") || s.includes("ios")) return "iOS";
+  if (s.includes("linux")) return "Linux";
+  return "Other";
+}
+
+function detectDevice(ua: string): string {
+  const s = ua.toLowerCase();
+  if (s.includes("ipad") || s.includes("tablet")) return "Tablet";
+  if (s.includes("mobi") || s.includes("iphone") || s.includes("android")) return "Mobile";
+  return "Desktop";
 }
 
 async function generateUniqueApiKey(): Promise<string> {

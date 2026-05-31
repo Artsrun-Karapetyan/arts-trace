@@ -1342,4 +1342,63 @@ tr.clickable-row:active {
   background: rgba(110, 168, 254, 0.08) !important;
 }
 
+.issue-env-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.issue-breakdown-card {
+  padding: 14px;
+}
+
+.issue-breakdown-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+
+.issue-breakdown-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.issue-breakdown-list {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.issue-breakdown-row {
+  display: grid;
+  gap: 5px;
+}
+
+.issue-breakdown-label-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.issue-breakdown-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(110, 168, 254, 0.12);
+  overflow: hidden;
+}
+
+.issue-breakdown-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4f8fed, #88b8ff);
+}
+
+@media (max-width: 1100px) {
+  .issue-env-grid {
+    grid-template-columns: 1fr;
+  }
+}
 

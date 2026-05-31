@@ -39,6 +39,11 @@ export type IssueRow = {
   usersCount: number;
   firstSeen: string;
   lastSeen: string;
+  environment?: {
+    browsers: Array<{ name: string; count: number; percent: number }>;
+    os: Array<{ name: string; count: number; percent: number }>;
+    devices: Array<{ name: string; count: number; percent: number }>;
+  };
 };
 
 export type EventRow = {
