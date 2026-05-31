@@ -31,39 +31,46 @@ function ProjectIssuesPage() {
       </div>
 
       <div className="panel">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t("common.message")}</th>
-              <th>{t("common.count")}</th>
-              <th>Severity</th>
-              <th>{t("common.firstSeen")}</th>
-              <th>{t("common.lastSeen")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {issues.map((issue) => {
-              const severity = severityByCount(issue.count);
-              return (
-                <tr key={issue.id}>
-                  <td>
-                    <Link className="link-strong" to="/issues/$id" params={{ id: issue.id }} search={{ pid: id }}>
-                      {issue.message}
-                    </Link>
-                  </td>
-                  <td>{issue.count}</td>
-                  <td>
-                    <span className={`chip ${severity === "high" ? "chip-high" : "chip-mid"}`}>
-                      {severity.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="mono">{fmt(issue.firstSeen)}</td>
-                  <td className="mono">{fmt(issue.lastSeen)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {issues.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">🎉</div>
+            <div className="empty-state-text">No issues found. Your app is running clean!</div>
+          </div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t("common.message")}</th>
+                <th>{t("common.count")}</th>
+                <th>Severity</th>
+                <th>{t("common.firstSeen")}</th>
+                <th>{t("common.lastSeen")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {issues.map((issue) => {
+                const severity = severityByCount(issue.count);
+                return (
+                  <tr key={issue.id}>
+                    <td>
+                      <Link className="link-strong" to="/issues/$id" params={{ id: issue.id }} search={{ pid: id }}>
+                        {issue.message}
+                      </Link>
+                    </td>
+                    <td>{issue.count}</td>
+                    <td>
+                      <span className={`chip ${severity === "high" ? "chip-high" : "chip-mid"}`}>
+                        {severity.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="mono">{fmt(issue.firstSeen)}</td>
+                    <td className="mono">{fmt(issue.lastSeen)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

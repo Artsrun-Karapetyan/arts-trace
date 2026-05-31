@@ -26,30 +26,37 @@ function ProjectEventsPage() {
         </div>
       </div>
       <div className="panel">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t("common.message")}</th>
-              <th>{t("common.source")}</th>
-              <th>{t("common.url")}</th>
-              <th>{t("common.created")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event) => (
-              <tr key={event.id}>
-                <td>
-                  <Link className="link-strong" to="/events/$id" params={{ id: event.id }} search={{ pid: id }}>
-                    {event.message}
-                  </Link>
-                </td>
-                <td className="mono">{event.fileName ? `${event.fileName}:${event.line ?? "?"}:${event.column ?? "?"}` : "-"}</td>
-                <td className="mono">{event.url}</td>
-                <td className="mono">{fmt(event.createdAt)}</td>
+        {events.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">📡</div>
+            <div className="empty-state-text">No events captured yet. Trigger an error in your app to see it here.</div>
+          </div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t("common.message")}</th>
+                <th>{t("common.source")}</th>
+                <th>{t("common.url")}</th>
+                <th>{t("common.created")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {events.map((event) => (
+                <tr key={event.id}>
+                  <td>
+                    <Link className="link-strong" to="/events/$id" params={{ id: event.id }} search={{ pid: id }}>
+                      {event.message}
+                    </Link>
+                  </td>
+                  <td className="mono">{event.fileName ? `${event.fileName}:${event.line ?? "?"}:${event.column ?? "?"}` : "-"}</td>
+                  <td className="mono">{event.url}</td>
+                  <td className="mono">{fmt(event.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

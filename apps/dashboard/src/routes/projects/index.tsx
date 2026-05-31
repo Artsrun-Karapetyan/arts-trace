@@ -72,7 +72,7 @@ function ProjectsPage() {
         <h2>{t("projects.title")}</h2>
       </div>
 
-      <div className="card card-flow" style={{ marginBottom: 14 }}>
+      <div className="card card-flow" style={{ marginBottom: 16 }}>
         <div className="section-title">1. Create Project</div>
         <form onSubmit={onCreateProject} style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <input
@@ -85,22 +85,22 @@ function ProjectsPage() {
             {creating ? "Creating..." : "Create Project"}
           </button>
         </form>
-        {createError ? <p className="small-note" style={{ color: "#ef5b6a" }}>{createError}</p> : null}
+        {createError ? <p className="small-note" style={{ color: "#f87171" }}>{createError}</p> : null}
         {lastCreated ? (
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 12 }}>
             <div className="section-title">2. Copy Credentials</div>
-            <p className="small-note">
+            <p className="small-note" style={{ marginTop: 0 }}>
               Created: <strong>{lastCreated.name}</strong> | API key: <code className="mono">{lastCreated.apiKey}</code>
             </p>
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <button className="btn btn-ghost" onClick={copyKey}>
-                {copied === "key" ? "Copied" : "Copy API Key"}
+                {copied === "key" ? "✓ Copied" : "Copy API Key"}
               </button>
               <button
                 className="btn btn-ghost"
                 onClick={copySnippet}
               >
-                {copied === "snippet" ? "Copied" : "Copy SDK Snippet"}
+                {copied === "snippet" ? "✓ Copied" : "Copy SDK Snippet"}
               </button>
             </div>
             <div className="section-title">3. Paste Into Your App</div>
@@ -119,54 +119,72 @@ init({
 
       <section className="kpis">
         <div className="kpi">
-          <div className="kpi-label">Projects</div>
+          <div className="kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+            Projects
+          </div>
           <div className="kpi-value">{projects.length}</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Total Errors</div>
+          <div className="kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+            Total Errors
+          </div>
           <div className="kpi-value">{totalErrors}</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Errors Today</div>
+          <div className="kpi-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+            Errors Today
+          </div>
           <div className="kpi-value">{totalToday}</div>
         </div>
       </section>
 
-      <div className="project-card-list">
-        {projects.map((project) => (
-          <article key={project.id} className="project-card">
-            <div className="project-card-head">
-              <Link className="project-card-title" to="/projects/$id/issues" params={{ id: project.id }}>
-                {project.name}
-              </Link>
-              <span className="mono small-note">{fmt(project.createdAt)}</span>
-            </div>
-
-            <div className="project-card-metrics">
-              <div>
-                <div className="small-note">{t("projects.totalErrors")}</div>
-                <div className="project-card-value">{project.totalErrors}</div>
+      {projects.length === 0 ? (
+        <div className="panel">
+          <div className="empty-state">
+            <div className="empty-state-icon">📦</div>
+            <div className="empty-state-text">No projects yet. Create one above to get started.</div>
+          </div>
+        </div>
+      ) : (
+        <div className="project-card-list">
+          {projects.map((project) => (
+            <article key={project.id} className="project-card">
+              <div className="project-card-head">
+                <Link className="project-card-title" to="/projects/$id/issues" params={{ id: project.id }}>
+                  {project.name}
+                </Link>
+                <span className="mono small-note">{fmt(project.createdAt)}</span>
               </div>
-              <div>
-                <div className="small-note">{t("projects.errorsToday")}</div>
-                <div className="project-card-value">{project.errorsToday}</div>
-              </div>
-            </div>
 
-            <div className="project-card-actions">
-              <Link className="btn btn-ghost" to="/projects/$id/issues" params={{ id: project.id }}>
-                Issues
-              </Link>
-              <Link className="btn btn-ghost" to="/projects/$id/events" params={{ id: project.id }}>
-                Events
-              </Link>
-              <Link className="btn btn-ghost" to="/projects/$id/settings" params={{ id: project.id }}>
-                Settings
-              </Link>
-            </div>
-          </article>
-        ))}
-      </div>
+              <div className="project-card-metrics">
+                <div>
+                  <div className="small-note" style={{ marginTop: 0 }}>{t("projects.totalErrors")}</div>
+                  <div className="project-card-value">{project.totalErrors}</div>
+                </div>
+                <div>
+                  <div className="small-note" style={{ marginTop: 0 }}>{t("projects.errorsToday")}</div>
+                  <div className="project-card-value">{project.errorsToday}</div>
+                </div>
+              </div>
+
+              <div className="project-card-actions">
+                <Link className="btn btn-ghost" to="/projects/$id/issues" params={{ id: project.id }}>
+                  Issues
+                </Link>
+                <Link className="btn btn-ghost" to="/projects/$id/events" params={{ id: project.id }}>
+                  Events
+                </Link>
+                <Link className="btn btn-ghost" to="/projects/$id/settings" params={{ id: project.id }}>
+                  Settings
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

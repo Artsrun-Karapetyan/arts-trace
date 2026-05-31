@@ -97,19 +97,92 @@ function EventDetailPage() {
         <h2>{t("events.detail")}</h2>
       </div>
       <div className="card">
-        <div className="meta-grid">
-          <p><strong>{t("common.message")}:</strong> {event.message}</p>
-          <p><strong>{t("common.source")}:</strong> <span className="mono">{event.fileName ? `${event.fileName}:${event.line ?? "?"}:${event.column ?? "?"}` : "-"}</span></p>
-          <p><strong>{t("common.url")}:</strong> <span className="mono">{event.url}</span></p>
-          <p><strong>{t("events.userAgent")}:</strong> {event.userAgent ?? "-"}</p>
-          <p><strong>{t("common.created")}:</strong> <span className="mono">{fmt(event.createdAt)}</span></p>
+        {/* Error message banner */}
+        <div className="event-error-banner">
+          <div className="event-error-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <div className="event-error-content">
+            <div className="event-error-label">{t("common.message")}</div>
+            <div className="event-error-message">{event.message}</div>
+          </div>
         </div>
 
-        <p style={{ marginBottom: 6 }}><strong>{t("events.stack")}:</strong></p>
+        {/* Info rows */}
+        <div className="event-info-grid">
+          <div className="event-info-item">
+            <div className="event-info-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+            </div>
+            <div className="event-info-content">
+              <div className="event-info-label">{t("common.source")}</div>
+              <div className="event-info-value mono">{event.fileName ? `${event.fileName}:${event.line ?? "?"}:${event.column ?? "?"}` : "-"}</div>
+            </div>
+          </div>
+
+          <div className="event-info-item">
+            <div className="event-info-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </div>
+            <div className="event-info-content">
+              <div className="event-info-label">{t("common.url")}</div>
+              <div className="event-info-value mono">{event.url}</div>
+            </div>
+          </div>
+
+          <div className="event-info-item">
+            <div className="event-info-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+            </div>
+            <div className="event-info-content">
+              <div className="event-info-label">{t("events.userAgent")}</div>
+              <div className="event-info-value">{event.userAgent ?? "-"}</div>
+            </div>
+          </div>
+
+          <div className="event-info-item">
+            <div className="event-info-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <div className="event-info-content">
+              <div className="event-info-label">{t("common.created")}</div>
+              <div className="event-info-value mono">{fmt(event.createdAt)}</div>
+            </div>
+          </div>
+        </div>
+
+        <hr className="section-sep" />
+
+        <div className="event-stack-head">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+          <strong>{t("events.stack")}</strong>
+        </div>
         <pre>{event.stack ?? t("common.noStack")}</pre>
 
-        <div className="page-head" style={{ marginTop: 16, marginBottom: 8 }}>
-          <h2 style={{ fontSize: 18 }}>Replay + Network</h2>
+        <hr className="section-sep" />
+
+        <div className="page-head" style={{ marginTop: 0, marginBottom: 10 }}>
+          <h2 style={{ fontSize: 17 }}>Replay + Network</h2>
         </div>
         <div className="event-grid">
           {replayEvents.length > 0 ? (
@@ -117,14 +190,19 @@ function EventDetailPage() {
               <div ref={replayRef} className="replay-container" />
             </div>
           ) : (
-            <div className="panel empty-panel">Replay not captured for this event</div>
+            <div className="panel">
+              <div className="empty-state" style={{ padding: "32px 20px" }}>
+                <div className="empty-state-icon">🎬</div>
+                <div className="empty-state-text">Replay not captured for this event</div>
+              </div>
+            </div>
           )}
 
           <div className="panel network-inspector">
             <div className="network-inspector-head">
               <strong>Network Timeline</strong>
               <div className="network-head-right">
-                <span className="mono small-note">{visibleNetworkRows.length}/{networkRows.length} requests</span>
+                <span className="mono small-note" style={{ marginTop: 0 }}>{visibleNetworkRows.length}/{networkRows.length} requests</span>
                 <button className="btn btn-ghost network-toggle" type="button" onClick={() => setShowFutureRequests((v) => !v)}>
                   {showFutureRequests ? "Replay-synced" : "Show all"}
                 </button>
@@ -132,7 +210,10 @@ function EventDetailPage() {
             </div>
             <div className="network-list">
               {visibleNetworkRows.length === 0 ? (
-                <div className="empty-panel">No captured requests for this event</div>
+                <div className="empty-state" style={{ padding: "24px 16px" }}>
+                  <div className="empty-state-icon" style={{ fontSize: 24 }}>📡</div>
+                  <div className="empty-state-text">No captured requests</div>
+                </div>
               ) : (
                 visibleNetworkRows.map((n) => {
                   const createdTs = new Date(n.createdAt).getTime();
@@ -184,19 +265,19 @@ function EventDetailPage() {
                 {networkTab === "headers" ? (
                   <div className="network-general">
                     <div className="network-detail-row">
-                      <span className="small-note">Request URL</span>
+                      <span className="small-note" style={{ marginTop: 0 }}>Request URL</span>
                       <span className="mono">{selectedRequest.url}</span>
                     </div>
                     <div className="network-detail-row">
-                      <span className="small-note">Request Method</span>
+                      <span className="small-note" style={{ marginTop: 0 }}>Request Method</span>
                       <span>{selectedRequest.method}</span>
                     </div>
                     <div className="network-detail-row">
-                      <span className="small-note">Status Code</span>
+                      <span className="small-note" style={{ marginTop: 0 }}>Status Code</span>
                       <span>{selectedRequest.status ?? "-"}</span>
                     </div>
                     <div className="network-detail-row">
-                      <span className="small-note">Duration</span>
+                      <span className="small-note" style={{ marginTop: 0 }}>Duration</span>
                       <span>{selectedRequest.duration ?? "-"} ms</span>
                     </div>
                   </div>
@@ -224,8 +305,10 @@ function EventDetailPage() {
           </div>
         </div>
 
-        <div className="page-head" style={{ marginTop: 16 }}>
-          <h2 style={{ fontSize: 18 }}>Breadcrumbs</h2>
+        <hr className="section-sep" />
+
+        <div className="page-head" style={{ marginTop: 0 }}>
+          <h2 style={{ fontSize: 17 }}>Breadcrumbs</h2>
           {breadcrumbs.length > breadcrumbLimit ? (
             <button className="btn btn-ghost" onClick={() => setShowAllBreadcrumbs((v) => !v)}>
               {showAllBreadcrumbs ? "Show less" : `Show more (${breadcrumbs.length - breadcrumbLimit})`}
@@ -233,24 +316,31 @@ function EventDetailPage() {
           ) : null}
         </div>
         <div className="panel">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Type</th>
-                <th>Message</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleBreadcrumbs.map((b) => (
-                <tr key={b.id}>
-                  <td className="mono">{fmt(b.createdAt)}</td>
-                  <td>{b.type}</td>
-                  <td>{b.message}</td>
+          {breadcrumbs.length === 0 ? (
+            <div className="empty-state" style={{ padding: "24px 16px" }}>
+              <div className="empty-state-icon" style={{ fontSize: 24 }}>🍞</div>
+              <div className="empty-state-text">No breadcrumbs captured</div>
+            </div>
+          ) : (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Message</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {visibleBreadcrumbs.map((b) => (
+                  <tr key={b.id}>
+                    <td className="mono">{fmt(b.createdAt)}</td>
+                    <td>{b.type}</td>
+                    <td>{b.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
       </div>

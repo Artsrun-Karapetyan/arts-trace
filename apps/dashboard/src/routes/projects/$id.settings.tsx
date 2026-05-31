@@ -84,31 +84,35 @@ init({
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 12 }}>
+      <div className="card" style={{ marginBottom: 14 }}>
         <div className="section-title">Project Identity</div>
-        <p><strong>Name:</strong> {project.name}</p>
-        <p><strong>Project ID:</strong> <code className="mono">{project.id}</code></p>
-        <p><strong>API Key:</strong> <code className="mono">{apiKey}</code></p>
+        <div className="meta-grid">
+          <p><strong>Name:</strong> {project.name}</p>
+          <p><strong>Project ID:</strong> <code className="mono">{project.id}</code></p>
+        </div>
+        <p style={{ marginTop: 10 }}><strong>API Key:</strong> <code className="mono">{apiKey}</code></p>
+
+        <hr className="section-sep" />
 
         <div className="section-title">Integration</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button className="btn btn-ghost" onClick={copyKey}>
-            {copied === "key" ? "Copied" : "Copy API Key"}
+            {copied === "key" ? "✓ Copied" : "Copy API Key"}
           </button>
           <button className="btn btn-ghost" onClick={copySnippet}>
-            {copied === "snippet" ? "Copied" : "Copy SDK Snippet"}
+            {copied === "snippet" ? "✓ Copied" : "Copy SDK Snippet"}
           </button>
           <button className="btn" disabled={busy !== null} onClick={onRotate}>
             {busy === "rotate" ? "Rotating..." : "Rotate Key"}
           </button>
         </div>
 
-        {error ? <p className="small-note" style={{ color: "#ef5b6a" }}>{error}</p> : null}
+        {error ? <p className="small-note" style={{ color: "#f87171" }}>{error}</p> : null}
       </div>
 
-      <div className="card card-danger" style={{ marginBottom: 12 }}>
-        <div className="section-title">Danger Zone</div>
-        <p className="small-note">Deleting project removes all issues and events permanently.</p>
+      <div className="card card-danger" style={{ marginBottom: 14 }}>
+        <div className="section-title">⚠ Danger Zone</div>
+        <p className="small-note" style={{ marginTop: 0, marginBottom: 12 }}>Deleting project removes all issues and events permanently.</p>
         <button className="btn btn-danger" disabled={busy !== null} onClick={onDelete}>
           {busy === "delete" ? "Deleting..." : "Delete Project"}
         </button>

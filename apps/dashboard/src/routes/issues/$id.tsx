@@ -32,34 +32,43 @@ function IssueDetailPage() {
         </div>
       </div>
 
-      <div className="page-head" style={{ marginTop: 16 }}>
+      <hr className="section-sep" />
+
+      <div className="page-head" style={{ marginTop: 0 }}>
         <h2>{t("issues.latestEvents")}</h2>
       </div>
       <div className="panel">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t("common.message")}</th>
-              <th>{t("common.source")}</th>
-              <th>{t("common.url")}</th>
-              <th>{t("common.created")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event) => (
-              <tr key={event.id}>
-                <td>
-                  <Link className="link-strong" to="/events/$id" params={{ id: event.id }} search={{ pid: issue.projectId }}>
-                    {event.message}
-                  </Link>
-                </td>
-                <td className="mono">{event.fileName ? `${event.fileName}:${event.line ?? "?"}:${event.column ?? "?"}` : "-"}</td>
-                <td className="mono">{event.url}</td>
-                <td className="mono">{fmt(event.createdAt)}</td>
+        {events.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">📡</div>
+            <div className="empty-state-text">No events recorded for this issue yet.</div>
+          </div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t("common.message")}</th>
+                <th>{t("common.source")}</th>
+                <th>{t("common.url")}</th>
+                <th>{t("common.created")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {events.map((event) => (
+                <tr key={event.id}>
+                  <td>
+                    <Link className="link-strong" to="/events/$id" params={{ id: event.id }} search={{ pid: issue.projectId }}>
+                      {event.message}
+                    </Link>
+                  </td>
+                  <td className="mono">{event.fileName ? `${event.fileName}:${event.line ?? "?"}:${event.column ?? "?"}` : "-"}</td>
+                  <td className="mono">{event.url}</td>
+                  <td className="mono">{fmt(event.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
