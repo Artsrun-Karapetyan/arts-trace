@@ -77,6 +77,29 @@ Replay is uploaded separately to avoid `pending` with large request bodies:
 
 This split is critical for browser reliability with `keepalive` limits.
 
+### 4.3 Replay window policy
+
+Default replay window around the error:
+
+- `15s` before error
+- `2s` after error
+
+SDK options:
+
+```ts
+init({
+  apiKey: "YOUR_PROJECT_API_KEY",
+  endpoint: "http://localhost:3100/events",
+  replayPreErrorMs: 15000,
+  replayPostErrorMs: 2000
+});
+```
+
+Notes:
+
+- Replay upload is trimmed around error timestamp.
+- SDK forces periodic full snapshots so replay does not stretch to very old session time.
+
 ## 5) API endpoints
 
 Projects:
@@ -121,9 +144,13 @@ import { init } from "@artstrace/browser";
 
 init({
   apiKey: "YOUR_PROJECT_API_KEY",
-  endpoint: "http://localhost:3100/events"
+  endpoint: "http://localhost:3100/events",
+  replayPreErrorMs: 15000,
+  replayPostErrorMs: 2000
 });
 ```
+
+Current local package version in this repo: `0.1.14`.
 
 ## 8) Releasing SDK for local install
 
@@ -170,6 +197,22 @@ Check:
 1. Reproduce with real interactions before triggering error.
 2. Verify `POST /events/:id/replay` payload has `replayEvents.length > 0`.
 3. Open a newly created event (old records may not have replay).
+
+### 9.4 Replay is too long (minutes)
+
+Check:
+
+1. External app uses the latest SDK tarball from `packages/browser`.
+2. `replayPreErrorMs`/`replayPostErrorMs` are set as expected (`15000/2000` by default).
+3. The event is newly created after SDK update.
+
+### 9.5 Network request details missing
+
+If you only see basic network rows (without payload/response details):
+
+1. Apply DB migrations (`pnpm db:migrate`).
+2. Generate new events after migration.
+3. Old events may contain only legacy network fields.
 
 ## 10) Daily dev commands
 

@@ -144,7 +144,9 @@ function EventDetailPage() {
                 <div className="network-raw-grid">
                   <div>
                     <p><strong>Payload Body</strong></p>
-                    <pre>{selectedRequest.requestBody || selectedRequest.responseBody || selectedRequest.error || "-"}</pre>
+                    <JsonInspector
+                      value={toInspectableValue(selectedRequest.requestBody || selectedRequest.responseBody || selectedRequest.error || "-")}
+                    />
                   </div>
                 </div>
               </div>
@@ -202,4 +204,89 @@ function buildNetworkPreview(request: {
     `status: ${request.status ?? "-"}`,
     `durationMs: ${request.duration ?? "-"}`
   ].join("\n");
+}
+
+function toInspectableValue(raw: string): unknown {
+  if (!raw) return "-";
+  const trimmed = raw.trim();
+  if (!trimmed) return "-";
+  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return raw;
+    }
+  }
+  return raw;
+}
+
+function JsonInspector({ value }: { value: unknown }) {
+  if (value == null) return <pre>-</pre>;
+  if (typeof value === "string") return <pre>{value}</pre>;
+  if (typeof value !== "object") return <pre>{String(value)}</pre>;
+  return (
+    <div className="json-tree">
+      <JsonNode name={Array.isArray(value) ? "[root]" : "{root}"} value={value} level={0} defaultOpen />
+    </div>
+  );
+}
+
+function JsonNode({
+  name,
+  value,
+  level,
+  defaultOpen = false
+}: {
+  name: string;
+  value: unknown;
+  level: number;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const isObject = typeof value === "object" && value !== null;
+
+  if (!isObject) {
+    return (
+      <div className="json-row" style={{ paddingLeft: level * 14 }}>
+        <span className="json-key">{name}</span>
+        <span className="json-sep">: </span>
+        <span className="json-value">{formatPrimitive(value)}</span>
+      </div>
+    );
+  }
+
+  const entries = Array.isArray(value)
+    ? value.map((item, idx) => [String(idx), item] as const)
+    : Object.entries(value as Record<string, unknown>);
+
+  const bracketOpen = Array.isArray(value) ? "[" : "{";
+  const bracketClose = Array.isArray(value) ? "]" : "}";
+
+  return (
+    <div>
+      <div className="json-row" style={{ paddingLeft: level * 14 }}>
+        <button type="button" className="json-toggle" onClick={() => setOpen((v) => !v)}>
+          {open ? "▾" : "▸"}
+        </button>
+        <span className="json-key">{name}</span>
+        <span className="json-sep">: </span>
+        <span className="json-bracket">{bracketOpen}</span>
+        {!open && <span className="json-collapsed">… {entries.length} items</span>}
+        {!open && <span className="json-bracket">{bracketClose}</span>}
+      </div>
+      {open && entries.map(([k, v]) => <JsonNode key={`${name}-${k}`} name={k} value={v} level={level + 1} />)}
+      {open && (
+        <div className="json-row" style={{ paddingLeft: level * 14 }}>
+          <span className="json-bracket">{bracketClose}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatPrimitive(value: unknown): string {
+  if (typeof value === "string") return `"${value}"`;
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  return String(value);
 }

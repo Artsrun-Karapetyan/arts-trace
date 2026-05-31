@@ -48,8 +48,8 @@ const MAX_NETWORK = 50;
 const MAX_REPLAY = 2000;
 const MAX_REPLAY_UPLOAD_BYTES = 4_000_000;
 const MAX_EVENT_UPLOAD_BYTES = 60_000;
-const DEFAULT_REPLAY_PRE_ERROR_MS = 10_000;
-const DEFAULT_REPLAY_POST_ERROR_MS = 3_000;
+const DEFAULT_REPLAY_PRE_ERROR_MS = 15_000;
+const DEFAULT_REPLAY_POST_ERROR_MS = 2_000;
 
 let isInitialized = false;
 let replayPreErrorMs = DEFAULT_REPLAY_PRE_ERROR_MS;
@@ -129,6 +129,8 @@ function startReplayCapture(): void {
   try {
     if (stopReplay) return;
     stopReplay = record({
+      // Force periodic full snapshots so "pre-error window" can start near the error.
+      checkoutEveryNms: Math.max(10_000, replayPreErrorMs + replayPostErrorMs),
       emit(event) {
         replayEvents.push(event as Record<string, unknown>);
         trimReplayBuffer();
@@ -565,9 +567,15 @@ function buildReplayForTransport(
     events.slice(0, firstInWindow + 1),
     (e) => e.type === 2 || e.type === "FullSnapshot"
   );
-  const fullSnapshotAbs = fullSnapshotIndex >= 0 ? fullSnapshotIndex : 0;
+  const fullSnapshotAbs = fullSnapshotIndex >= 0 ? fullSnapshotIndex : firstInWindow;
   const metaIndex = findLastIndex(events.slice(0, fullSnapshotAbs + 1), (e) => e.type === 4 || e.type === "Meta");
-  const startIndex = metaIndex >= 0 ? metaIndex : fullSnapshotAbs;
+  let startIndex = metaIndex >= 0 ? metaIndex : fullSnapshotAbs;
+
+  // If the nearest snapshot is too old, cut to the requested window anyway.
+  const startEventTs = events[startIndex]?.timestamp ?? safeErrorTs;
+  if (safeErrorTs - startEventTs > preErrorMs + 2_000) {
+    startIndex = firstInWindow;
+  }
 
   return events.slice(startIndex, Math.min(lastInWindow + 1, events.length));
 }

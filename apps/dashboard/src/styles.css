@@ -321,6 +321,53 @@ body {
   gap: 10px;
 }
 
+.json-tree {
+  border: 1px solid #213556;
+  border-radius: 10px;
+  background: #0a1730;
+  padding: 8px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.json-row {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #dce9ff;
+  white-space: pre-wrap;
+}
+
+.json-toggle {
+  border: 0;
+  background: transparent;
+  color: #94b5ea;
+  cursor: pointer;
+  width: 18px;
+  padding: 0;
+}
+
+.json-key {
+  color: #86b4ff;
+}
+
+.json-sep {
+  color: #7f95be;
+}
+
+.json-value {
+  color: #d6f0ff;
+}
+
+.json-bracket {
+  color: #9cc2ff;
+}
+
+.json-collapsed {
+  color: #8ea5d2;
+  margin: 0 6px;
+}
+
 @media (max-width: 1200px) {
   .event-grid {
     grid-template-columns: 1fr;
