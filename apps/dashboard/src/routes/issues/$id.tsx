@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchIssue, fetchIssueEvents, fmt } from "../../lib";
+import { fetchIssue, fetchIssueEvents, fmt, updateIssue, type IssueStatus } from "../../lib";
 import { SourceLocation } from "../../components/SourceLocation";
 
 export const Route = createFileRoute("/issues/$id")({
@@ -19,6 +20,24 @@ function IssueDetailPage() {
   const { issue, events } = Route.useLoaderData();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [status, setStatus] = useState<IssueStatus>(issue.status);
+  const [assignee, setAssignee] = useState(issue.assignee ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const saveWorkflow = async (input: { status?: IssueStatus; assignee?: string }) => {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const updated = await updateIssue(issue.id, input);
+      setStatus(updated.status);
+      setAssignee(updated.assignee ?? "");
+    } catch {
+      setSaveError("Could not save workflow changes");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -26,6 +45,47 @@ function IssueDetailPage() {
         <h2>{t("issues.detail")}</h2>
       </div>
       <div className="card">
+        <div className="issue-workflow">
+          <div>
+            <div className="section-title">{t("issues.workflow")}</div>
+            <div className="issue-workflow-hint">{t("issues.workflowHint")}</div>
+          </div>
+          <label className="issue-workflow-field">
+            <span>{t("issues.status")}</span>
+            <select
+              className="input issue-workflow-select"
+              value={status}
+              disabled={saving}
+              onChange={(event) => {
+                const next = event.target.value as IssueStatus;
+                setStatus(next);
+                void saveWorkflow({ status: next });
+              }}
+            >
+              <option value="OPEN">{t("issues.statuses.OPEN")}</option>
+              <option value="IN_PROGRESS">{t("issues.statuses.IN_PROGRESS")}</option>
+              <option value="RESOLVED">{t("issues.statuses.RESOLVED")}</option>
+              <option value="IGNORED">{t("issues.statuses.IGNORED")}</option>
+            </select>
+          </label>
+          <label className="issue-workflow-field issue-assignee-field">
+            <span>{t("issues.assignee")}</span>
+            <div className="issue-assignee-row">
+              <input
+                className="input"
+                value={assignee}
+                maxLength={120}
+                placeholder={t("issues.assigneePlaceholder")}
+                onChange={(event) => setAssignee(event.target.value)}
+              />
+              <button className="btn" type="button" disabled={saving} onClick={() => void saveWorkflow({ assignee })}>
+                {saving ? t("issues.saving") : t("issues.save")}
+              </button>
+            </div>
+          </label>
+        </div>
+        {saveError ? <div className="issue-workflow-error">{saveError}</div> : null}
+        <hr className="section-sep" />
         <div className="meta-grid">
           <p><strong>{t("common.message")}:</strong> {issue.message}</p>
           <p><strong>{t("common.count")}:</strong> {issue.count}</p>

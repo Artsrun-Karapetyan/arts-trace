@@ -6,6 +6,13 @@ datasource db {
   provider = "postgresql"
 }
 
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  IGNORED
+}
+
 model Project {
   id        String   @id @default(cuid())
   name      String
@@ -25,6 +32,8 @@ model Issue {
 
   fingerprint String
   message     String
+  status      IssueStatus @default(OPEN)
+  assignee    String?
   count       Int      @default(1)
   firstSeen   DateTime @default(now())
   lastSeen    DateTime @default(now())
@@ -111,4 +120,3 @@ model SourceMap {
   @@unique([projectId, release, fileName])
   @@index([projectId, release])
 }
-

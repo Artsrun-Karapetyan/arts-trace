@@ -336,6 +336,26 @@ export class AppService {
     };
   }
 
+  async updateIssue(issueId: string, body: unknown) {
+    const parsed = updateIssueSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+    if (!issue) throw new NotFoundException("Issue not found");
+
+    return prisma.issue.update({
+      where: { id: issueId },
+      data: {
+        status: parsed.data.status,
+        assignee: parsed.data.assignee === undefined
+          ? undefined
+          : parsed.data.assignee.trim() || null
+      }
+    });
+  }
+
   async getIssueEvents(issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
@@ -369,6 +389,13 @@ export class AppService {
 
 const createProjectSchema = z.object({
   name: z.string().min(2)
+});
+
+const updateIssueSchema = z.object({
+  status: z.enum(["OPEN", "IN_PROGRESS", "RESOLVED", "IGNORED"]).optional(),
+  assignee: z.string().max(120).optional()
+}).refine((body) => body.status !== undefined || body.assignee !== undefined, {
+  message: "At least one workflow field is required"
 });
 
 function getFingerprint(message: string, stack?: string): string {

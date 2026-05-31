@@ -1348,6 +1348,82 @@ tr.clickable-row:active {
   gap: 14px;
 }
 
+.issue-workflow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(170px, 0.55fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: end;
+}
+
+.issue-workflow-hint {
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.issue-workflow-field {
+  display: grid;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.issue-workflow-select {
+  min-width: 0;
+  width: 100%;
+}
+
+.issue-assignee-row {
+  display: flex;
+  gap: 8px;
+}
+
+.issue-assignee-row .input {
+  min-width: 0;
+}
+
+.issue-workflow-error {
+  margin-top: 10px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.workflow-chip {
+  display: inline-flex;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.workflow-chip-open {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.workflow-chip-in-progress {
+  color: #fcd34d;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.22);
+}
+
+.workflow-chip-resolved {
+  color: #6ee7b7;
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.22);
+}
+
+.workflow-chip-ignored {
+  color: var(--text-1);
+  background: rgba(168, 184, 216, 0.08);
+}
+
 .issue-breakdown-card {
   padding: 14px;
 }
@@ -1400,5 +1476,9 @@ tr.clickable-row:active {
   .issue-env-grid {
     grid-template-columns: 1fr;
   }
-}
 
+  .issue-workflow {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}

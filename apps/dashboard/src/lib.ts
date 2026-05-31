@@ -35,6 +35,8 @@ export type IssueRow = {
   projectId: string;
   fingerprint: string;
   message: string;
+  status: IssueStatus;
+  assignee?: string | null;
   count: number;
   usersCount: number;
   firstSeen: string;
@@ -45,6 +47,8 @@ export type IssueRow = {
     devices: Array<{ name: string; count: number; percent: number }>;
   };
 };
+
+export type IssueStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
 
 export type EventRow = {
   id: string;
@@ -134,6 +138,23 @@ export async function fetchProjectIssues(projectId: string): Promise<IssueRow[]>
 
 export async function fetchIssue(issueId: string): Promise<IssueRow> {
   return fetchJson<IssueRow>(`/issues/${issueId}`);
+}
+
+export async function updateIssue(
+  issueId: string,
+  input: { status?: IssueStatus; assignee?: string }
+): Promise<IssueRow> {
+  const url = `${API_BASE}/issues/${issueId}`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+  const body = await res.text();
+  if (!res.ok) throw new Error(`API ${res.status} for ${url}`);
+  return JSON.parse(body) as IssueRow;
 }
 
 export async function fetchIssueEvents(issueId: string): Promise<EventRow[]> {

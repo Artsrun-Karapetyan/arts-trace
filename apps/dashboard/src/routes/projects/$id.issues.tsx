@@ -100,6 +100,8 @@ function ProjectIssuesPage() {
                 <th>{t("common.count")}</th>
                 <th>{t("common.users")}</th>
                 <th>Severity</th>
+                <th>{t("issues.status")}</th>
+                <th>{t("issues.assignee")}</th>
                 <th>{t("common.firstSeen")}</th>
                 <th>{t("common.lastSeen")}</th>
               </tr>
@@ -128,6 +130,12 @@ function ProjectIssuesPage() {
                         {severity.toUpperCase()}
                       </span>
                     </td>
+                    <td>
+                      <span className={`workflow-chip workflow-chip-${issue.status.toLowerCase().replace("_", "-")}`}>
+                        {t(`issues.statuses.${issue.status}`)}
+                      </span>
+                    </td>
+                    <td>{issue.assignee || <span className="small-note">-</span>}</td>
                     <td className="mono">{fmt(issue.firstSeen)}</td>
                     <td className="mono">{fmt(issue.lastSeen)}</td>
                   </tr>
