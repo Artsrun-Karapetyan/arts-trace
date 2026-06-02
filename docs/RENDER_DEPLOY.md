@@ -15,7 +15,6 @@ Make sure `pnpm-lock.yaml` is committed to GitHub.
 
 ```env
 DATABASE_URL=postgresql://neondb_owner:YOUR_PASSWORD@YOUR_PROJECT-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-DIRECT_URL=postgresql://neondb_owner:YOUR_PASSWORD@YOUR_PROJECT.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 PORT=3100
 ```
 
