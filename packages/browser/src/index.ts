@@ -70,6 +70,10 @@ export function setUser(id: string): void {
   currentUserId = id;
 }
 
+export function clearUser(): void {
+  currentUserId = undefined;
+}
+
 function getOrCreateSessionId(): string {
   try {
     let id = localStorage.getItem("artstrace_session_id");

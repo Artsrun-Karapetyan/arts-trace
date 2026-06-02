@@ -1,5 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 const AUTH_TOKEN_KEY = "artstrace_auth_token";
+export const AUTH_UNAUTHORIZED_EVENT = "artstrace:unauthorized";
 
 export type AuthUser = {
   id: string;
@@ -38,9 +39,7 @@ async function fetchJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     if (res.status === 401 && typeof window !== "undefined") {
       clearAuthToken();
-      if (!window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/register")) {
-        window.location.assign("/login");
-      }
+      window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
     }
     throw new Error(readApiError(body, res.status, url));
   }
@@ -206,40 +205,29 @@ export async function fetchEvent(eventId: string): Promise<EventRow> {
 }
 
 export async function register(input: RegisterInput): Promise<{ token: string; user: AuthUser }> {
-  const data = await fetchJson<{ token: string; user: AuthUser }>("/auth/register", {
+  return fetchJson<{ token: string; user: AuthUser }>("/auth/register", {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
     body: JSON.stringify(input)
   });
-  setAuthToken(data.token);
-  return data;
 }
 
 export async function login(input: RegisterInput): Promise<{ token: string; user: AuthUser }> {
-  const data = await fetchJson<{ token: string; user: AuthUser }>("/auth/login", {
+  return fetchJson<{ token: string; user: AuthUser }>("/auth/login", {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
     body: JSON.stringify(input)
   });
-  setAuthToken(data.token);
-  return data;
 }
 
 export async function logout(): Promise<{ success: true }> {
-  try {
-    const data = await fetchJson<{ success: true }>("/auth/logout", {
-      method: "POST"
-    });
-    clearAuthToken();
-    return data;
-  } catch (error) {
-    clearAuthToken();
-    throw error;
-  }
+  return fetchJson<{ success: true }>("/auth/logout", {
+    method: "POST"
+  });
 }
 
 export async function fetchMe(): Promise<AuthUser> {

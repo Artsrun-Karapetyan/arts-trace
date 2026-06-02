@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchEvent, fmt } from "../../lib";
-import { SourceLocation } from "../../components/SourceLocation";
+import { SourceLocation } from "../../../components/SourceLocation";
+import { fetchEvent, fmt } from "../../../lib";
 
-export const Route = createFileRoute("/events/$id")({
+export const Route = createFileRoute("/_authenticated/events/$id")({
   loader: ({ params }) => fetchEvent(params.id),
   component: EventDetailPage
 });

@@ -622,6 +622,28 @@ body {
   justify-content: center;
 }
 
+.project-setup-identity-note {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(94, 234, 212, 0.22);
+  border-radius: var(--radius-sm);
+  background: rgba(20, 184, 166, 0.07);
+  color: var(--text-1);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.project-setup-identity-note strong {
+  color: var(--text-0);
+}
+
+.project-setup-identity-note code {
+  color: #5eead4;
+  font-family: var(--mono);
+}
+
 .project-setup-editor {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);

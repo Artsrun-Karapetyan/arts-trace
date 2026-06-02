@@ -1,9 +1,9 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { FormEvent, useState } from "react";
-import { ProjectSetupCard } from "../../components/ProjectSetupCard";
-import { createProject } from "../../lib";
+import { ProjectSetupCard } from "../../../components/ProjectSetupCard";
+import { createProject } from "../../../lib";
 
-export const Route = createFileRoute("/projects/create")({
+export const Route = createFileRoute("/_authenticated/projects/create")({
   component: CreateProjectPage
 });
 

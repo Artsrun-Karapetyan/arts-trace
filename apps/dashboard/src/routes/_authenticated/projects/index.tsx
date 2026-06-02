@@ -1,8 +1,8 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { fetchProjects, fmt, type ProjectRow } from "../../lib";
+import { fetchProjects, fmt } from "../../../lib";
 
-export const Route = createFileRoute("/projects/")({
+export const Route = createFileRoute("/_authenticated/projects/")({
   loader: fetchProjects,
   component: ProjectsPage
 });

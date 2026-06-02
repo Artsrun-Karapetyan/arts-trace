@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { FormEvent, useState } from "react";
-import { login, register } from "../lib";
+import { useAuth } from "../auth/AuthProvider";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -8,6 +8,7 @@ type AuthFormProps = {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const navigate = useNavigate();
+  const auth = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -20,9 +21,9 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     try {
       if (mode === "login") {
-        await login({ email, password });
+        await auth.login({ email, password });
       } else {
-        await register({ email, password });
+        await auth.register({ email, password });
       }
       await navigate({ to: "/projects" });
     } catch (err) {
