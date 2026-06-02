@@ -10,7 +10,7 @@
     "routegen": "tsr generate"
   },
   "dependencies": {
-    "@artstrace/browser": "workspace:*",
+    "arts-trace": "workspace:*",
     "@tanstack/react-router": "^1.170.10",
     "i18next": "^25.2.1",
     "react": "^19.2.6",

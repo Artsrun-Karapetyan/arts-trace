@@ -1,5 +1,5 @@
 {
-  "name": "@artstrace/browser",
+  "name": "arts-trace",
   "version": "0.1.16",
   "type": "module",
   "main": "./src/index.ts",
