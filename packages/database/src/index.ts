@@ -32,6 +32,7 @@ export namespace Prisma {
 
 type Project = {
   id: string;
+  ownerId: string | null;
   name: string;
   apiKey: string;
   createdAt: Date;
@@ -119,6 +120,7 @@ type SourceMap = {
 
 type ProjectCreateInput = {
   data: {
+    ownerId: string;
     name: string;
     apiKey: string;
   };
@@ -129,6 +131,7 @@ type ProjectFindUniqueInput =
   | { where: { apiKey: string } };
 
 type ProjectFindManyInput = {
+  where?: { ownerId: string };
   orderBy?: { createdAt: "asc" | "desc" };
   include?: { _count: { select: { events: true } } };
 };
@@ -257,6 +260,8 @@ type SourceMapUpsertInput = {
 type RawQueryResult<T> = Promise<T>;
 
 type PrismaClientLike = {
+  user: any;
+  session: any;
   project: {
     create(args: ProjectCreateInput): Promise<Project>;
     findUnique(args: ProjectFindUniqueInput): Promise<Project | null>;
@@ -312,6 +317,7 @@ type PrismaClientLike = {
     upsert(args: SourceMapUpsertInput): Promise<SourceMap>;
     findUnique(args: SourceMapFindUniqueInput): Promise<SourceMap | null>;
   };
+  $transaction<T>(callback: (client: PrismaClientLike) => Promise<T>): Promise<T>;
   $queryRawUnsafe<T>(query: string, ...values: unknown[]): RawQueryResult<T>;
   $disconnect(): Promise<void>;
 };

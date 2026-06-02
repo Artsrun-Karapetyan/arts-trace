@@ -15,6 +15,8 @@ enum IssueStatus {
 
 model Project {
   id        String   @id @default(cuid())
+  ownerId   String?
+  owner     User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   name      String
   apiKey    String   @unique
   createdAt DateTime @default(now())
@@ -22,6 +24,31 @@ model Project {
   issues    Issue[]
   events    Event[]
   sourceMaps SourceMap[]
+
+  @@index([ownerId])
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  passwordSalt String
+  createdAt    DateTime  @default(now())
+
+  sessions     Session[]
+  projects     Project[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Issue {

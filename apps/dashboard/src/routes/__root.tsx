@@ -1,7 +1,34 @@
-import { Link, Outlet, createRootRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import { clearAuthToken, fetchMe, getAuthToken, logout as logoutRequest } from "../lib";
 import { useTranslation } from "react-i18next";
 
 export const Route = createRootRoute({
+  beforeLoad: async ({ location }) => {
+    const token = getAuthToken();
+    const isAuthRoute = location.pathname.startsWith("/login") || location.pathname.startsWith("/register");
+
+    if (isAuthRoute) {
+      if (!token) return;
+      try {
+        await fetchMe();
+        throw redirect({ to: "/projects" });
+      } catch {
+        clearAuthToken();
+        return;
+      }
+    }
+
+    if (!token) {
+      throw redirect({ to: "/login" });
+    }
+
+    try {
+      await fetchMe();
+    } catch {
+      clearAuthToken();
+      throw redirect({ to: "/login" });
+    }
+  },
   component: RootLayout
 });
 
@@ -16,6 +43,7 @@ function RootLayout() {
 
   const inProject = currentProjectId !== null;
   const currentLang = i18n.language;
+  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/register");
 
   function setLanguage(lang: "en" | "hy") {
     void i18n.changeLanguage(lang);
@@ -28,6 +56,25 @@ function RootLayout() {
       return;
     }
     void navigate({ to: "/projects" });
+  }
+
+  async function onLogout() {
+    try {
+      await logoutRequest();
+    } catch {
+      // no-op
+    } finally {
+      clearAuthToken();
+      await navigate({ to: "/login" });
+    }
+  }
+
+  if (isAuthRoute) {
+    return (
+      <main className="auth-shell">
+        <Outlet />
+      </main>
+    );
   }
 
   return (
@@ -94,6 +141,9 @@ function RootLayout() {
             <button className={currentLang === "en" ? "lang-active" : ""} onClick={() => setLanguage("en")}>EN</button>
             <button className={currentLang === "hy" ? "lang-active" : ""} onClick={() => setLanguage("hy")}>HY</button>
           </div>
+          <button className="btn btn-ghost side-logout" type="button" onClick={onLogout}>
+            Logout
+          </button>
         </div>
       </aside>
 

@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ProjectsCreateRouteImport } from './routes/projects/create'
@@ -18,6 +20,16 @@ import { Route as ProjectsIdSettingsRouteImport } from './routes/projects/$id.se
 import { Route as ProjectsIdIssuesRouteImport } from './routes/projects/$id.issues'
 import { Route as ProjectsIdEventsRouteImport } from './routes/projects/$id.events'
 
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -61,6 +73,8 @@ const ProjectsIdEventsRoute = ProjectsIdEventsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/events/$id': typeof EventsIdRoute
   '/issues/$id': typeof IssuesIdRoute
   '/projects/create': typeof ProjectsCreateRoute
@@ -71,6 +85,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/events/$id': typeof EventsIdRoute
   '/issues/$id': typeof IssuesIdRoute
   '/projects/create': typeof ProjectsCreateRoute
@@ -82,6 +98,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/events/$id': typeof EventsIdRoute
   '/issues/$id': typeof IssuesIdRoute
   '/projects/create': typeof ProjectsCreateRoute
@@ -94,6 +112,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
+    | '/register'
     | '/events/$id'
     | '/issues/$id'
     | '/projects/create'
@@ -104,6 +124,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
+    | '/register'
     | '/events/$id'
     | '/issues/$id'
     | '/projects/create'
@@ -114,6 +136,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
+    | '/register'
     | '/events/$id'
     | '/issues/$id'
     | '/projects/create'
@@ -125,6 +149,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
   EventsIdRoute: typeof EventsIdRoute
   IssuesIdRoute: typeof IssuesIdRoute
   ProjectsCreateRoute: typeof ProjectsCreateRoute
@@ -136,6 +162,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -197,6 +237,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
   EventsIdRoute: EventsIdRoute,
   IssuesIdRoute: IssuesIdRoute,
   ProjectsCreateRoute: ProjectsCreateRoute,
