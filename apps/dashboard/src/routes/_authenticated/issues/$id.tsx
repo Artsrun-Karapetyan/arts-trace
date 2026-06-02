@@ -1,10 +1,10 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchIssue, fetchIssueEvents, fmt, updateIssue, type IssueStatus } from "../../lib";
-import { SourceLocation } from "../../components/SourceLocation";
+import { SourceLocation } from "../../../components/SourceLocation";
+import { fetchIssue, fetchIssueEvents, fmt, updateIssue, type IssueStatus } from "../../../lib";
 
-export const Route = createFileRoute("/issues/$id")({
+export const Route = createFileRoute("/_authenticated/issues/$id")({
   loader: async ({ params }) => {
     const [issue, events] = await Promise.all([
       fetchIssue(params.id),

@@ -1,9 +1,9 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { fetchProjectEvents, fmt } from "../../lib";
-import { SourceLocation } from "../../components/SourceLocation";
+import { SourceLocation } from "../../../components/SourceLocation";
+import { fetchProjectEvents, fmt } from "../../../lib";
 
-export const Route = createFileRoute("/projects/$id/events")({
+export const Route = createFileRoute("/_authenticated/projects/$id/events")({
   loader: ({ params }) => fetchProjectEvents(params.id),
   component: ProjectEventsPage
 });

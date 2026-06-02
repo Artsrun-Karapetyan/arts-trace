@@ -21,12 +21,21 @@ export function ProjectSetupCard({
   const [copied, setCopied] = useState<"key" | "snippet" | null>(null);
 
   const snippet = useMemo(
-    () => `import { init } from "@artstrace/browser";
+    () => `import { clearUser, init, setUser } from "@artstrace/browser";
 
 init({
   apiKey: "${apiKey}",
   endpoint: "http://localhost:3100/events"
-});`,
+});
+
+setUser({
+  id: authenticatedUser.id,
+  fullName: authenticatedUser.fullName,
+  role: authenticatedUser.role
+});
+
+// Call on logout:
+clearUser();`,
     [apiKey]
   );
   const snippetRows = useMemo(
@@ -34,7 +43,11 @@ init({
       [
         <span className="code-token code-keyword" key="k1">import</span>,
         " { ",
+        <span className="code-token code-function" key="f0">clearUser</span>,
+        ", ",
         <span className="code-token code-function" key="f1">init</span>,
+        ", ",
+        <span className="code-token code-function" key="f2">setUser</span>,
         " } ",
         <span className="code-token code-keyword" key="k2">from</span>,
         " ",
@@ -43,7 +56,7 @@ init({
       ],
       [],
       [
-        <span className="code-token code-function" key="f2">init</span>,
+        <span className="code-token code-function" key="f3">init</span>,
         <span className="code-token code-punct" key="p1">{"("}</span>,
         <span className="code-token code-punct" key="p2">{"{"}</span>
       ],
@@ -64,6 +77,38 @@ init({
       ],
       [
         <span className="code-token code-punct" key="p8">{`});`}</span>
+      ],
+      [],
+      [
+        <span className="code-token code-function" key="f4">setUser</span>,
+        <span className="code-token code-punct" key="p9">{"("}</span>,
+        <span className="code-token code-punct" key="p10">{"{"}</span>
+      ],
+      [
+        "  ",
+        <span className="code-token code-prop" key="p11">id</span>,
+        <span className="code-token code-punct" key="p12">:</span>,
+        " authenticatedUser.id,"
+      ],
+      [
+        "  ",
+        <span className="code-token code-prop" key="p13">fullName</span>,
+        <span className="code-token code-punct" key="p14">:</span>,
+        " authenticatedUser.fullName,"
+      ],
+      [
+        "  ",
+        <span className="code-token code-prop" key="p15">role</span>,
+        <span className="code-token code-punct" key="p16">:</span>,
+        " authenticatedUser.role"
+      ],
+      [
+        <span className="code-token code-punct" key="p17">{`});`}</span>
+      ],
+      [],
+      [
+        <span className="code-token code-function" key="f5">clearUser</span>,
+        <span className="code-token code-punct" key="p18">{`();`}</span>
       ]
     ],
     [apiKey]
@@ -152,6 +197,10 @@ init({
           <button className="btn btn-ghost project-setup-copy-btn" type="button" onClick={copySnippet}>
             {copied === "snippet" ? "✓ Copied" : "Copy snippet"}
           </button>
+          <div className="project-setup-identity-note">
+            <strong>Track affected users correctly.</strong>
+            <span>Call <code>setUser({`{ id, fullName, role }`})</code> after login or session restore, and <code>clearUser()</code> on logout.</span>
+          </div>
         </div>
       </div>
     </div>

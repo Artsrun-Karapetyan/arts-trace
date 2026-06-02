@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchEvent, fmt } from "../../lib";
-import { SourceLocation } from "../../components/SourceLocation";
+import { SourceLocation } from "../../../components/SourceLocation";
+import { fetchEvent, fmt } from "../../../lib";
 
-export const Route = createFileRoute("/events/$id")({
+export const Route = createFileRoute("/_authenticated/events/$id")({
   loader: ({ params }) => fetchEvent(params.id),
   component: EventDetailPage
 });
@@ -154,6 +154,23 @@ function EventDetailPage() {
             <div className="event-info-content">
               <div className="event-info-label">{t("events.userAgent")}</div>
               <div className="event-info-value">{event.userAgent ?? "-"}</div>
+            </div>
+          </div>
+
+          <div className="event-info-item">
+            <div className="event-info-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="7" r="4" />
+                <path d="M5.5 21a6.5 6.5 0 0 1 13 0" />
+              </svg>
+            </div>
+            <div className="event-info-content">
+              <div className="event-info-label">Affected user</div>
+              <div className="event-info-value">
+                {event.userName ?? event.userId ?? "-"}
+                {event.userRole ? <span className="chip chip-mid event-user-role">{event.userRole}</span> : null}
+              </div>
+              {event.userName && event.userId ? <div className="mono small-note event-user-id">{event.userId}</div> : null}
             </div>
           </div>
 

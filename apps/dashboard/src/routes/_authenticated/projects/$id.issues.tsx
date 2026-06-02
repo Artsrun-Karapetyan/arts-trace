@@ -1,9 +1,9 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchProjectIssues, fmt } from "../../lib";
+import { fetchProjectIssues, fmt } from "../../../lib";
 
-export const Route = createFileRoute("/projects/$id/issues")({
+export const Route = createFileRoute("/_authenticated/projects/$id/issues")({
   loader: ({ params }) => fetchProjectIssues(params.id),
   component: ProjectIssuesPage
 });

@@ -1,13 +1,47 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+const AUTH_TOKEN_KEY = "artstrace_auth_token";
+export const AUTH_UNAUTHORIZED_EVENT = "artstrace:unauthorized";
 
-async function fetchJson<T>(path: string): Promise<T> {
+export type AuthUser = {
+  id: string;
+  email: string;
+  createdAt: string;
+};
+
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setAuthToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+export function clearAuthToken(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+async function fetchJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const res = await fetch(url);
+  const token = typeof window !== "undefined" ? getAuthToken() : null;
+  const headers = new Headers(init.headers);
+  if (token) headers.set("authorization", `Bearer ${token}`);
+
+  const res = await fetch(url, {
+    ...init,
+    headers
+  });
   const contentType = res.headers.get("content-type") ?? "";
   const body = await res.text();
 
   if (!res.ok) {
-    throw new Error(`API ${res.status} for ${url}`);
+    if (res.status === 401 && typeof window !== "undefined") {
+      clearAuthToken();
+      window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+    }
+    throw new Error(readApiError(body, res.status, url));
   }
 
   if (!contentType.includes("application/json")) {
@@ -15,6 +49,18 @@ async function fetchJson<T>(path: string): Promise<T> {
   }
 
   return JSON.parse(body) as T;
+}
+
+function readApiError(body: string, status: number, url: string): string {
+  try {
+    const parsed = JSON.parse(body) as { message?: string | string[] };
+    if (Array.isArray(parsed.message)) return parsed.message.join(", ");
+    if (typeof parsed.message === "string") return parsed.message;
+  } catch {
+    // no-op
+  }
+
+  return `API ${status} for ${url}`;
 }
 
 export type ProjectRow = {
@@ -28,6 +74,11 @@ export type ProjectRow = {
 
 export type CreateProjectInput = {
   name: string;
+};
+
+export type RegisterInput = {
+  email: string;
+  password: string;
 };
 
 export type IssueRow = {
@@ -61,6 +112,9 @@ export type EventRow = {
   column?: number | null;
   url: string;
   userAgent?: string | null;
+  userId?: string | null;
+  userName?: string | null;
+  userRole?: string | null;
   createdAt: string;
   breadcrumbs?: Array<{
     id: string;
@@ -95,21 +149,13 @@ export async function fetchProjects(): Promise<ProjectRow[]> {
 }
 
 export async function createProject(input: CreateProjectInput): Promise<ProjectRow> {
-  const url = `${API_BASE}/projects`;
-  const res = await fetch(url, {
+  return fetchJson<ProjectRow>("/projects", {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
     body: JSON.stringify(input)
   });
-
-  const body = await res.text();
-  if (!res.ok) {
-    throw new Error(`API ${res.status} for ${url}`);
-  }
-
-  return JSON.parse(body) as ProjectRow;
 }
 
 export async function fetchProject(projectId: string): Promise<ProjectRow> {
@@ -117,19 +163,15 @@ export async function fetchProject(projectId: string): Promise<ProjectRow> {
 }
 
 export async function rotateProjectKey(projectId: string): Promise<ProjectRow> {
-  const url = `${API_BASE}/projects/${projectId}/rotate-key`;
-  const res = await fetch(url, { method: "POST" });
-  const body = await res.text();
-  if (!res.ok) throw new Error(`API ${res.status} for ${url}`);
-  return JSON.parse(body) as ProjectRow;
+  return fetchJson<ProjectRow>(`/projects/${projectId}/rotate-key`, {
+    method: "POST"
+  });
 }
 
 export async function deleteProject(projectId: string): Promise<{ success: true }> {
-  const url = `${API_BASE}/projects/${projectId}`;
-  const res = await fetch(url, { method: "DELETE" });
-  const body = await res.text();
-  if (!res.ok) throw new Error(`API ${res.status} for ${url}`);
-  return JSON.parse(body) as { success: true };
+  return fetchJson<{ success: true }>(`/projects/${projectId}`, {
+    method: "DELETE"
+  });
 }
 
 export async function fetchProjectIssues(projectId: string): Promise<IssueRow[]> {
@@ -144,17 +186,13 @@ export async function updateIssue(
   issueId: string,
   input: { status?: IssueStatus; assignee?: string }
 ): Promise<IssueRow> {
-  const url = `${API_BASE}/issues/${issueId}`;
-  const res = await fetch(url, {
+  return fetchJson<IssueRow>(`/issues/${issueId}`, {
     method: "PATCH",
     headers: {
       "content-type": "application/json"
     },
     body: JSON.stringify(input)
   });
-  const body = await res.text();
-  if (!res.ok) throw new Error(`API ${res.status} for ${url}`);
-  return JSON.parse(body) as IssueRow;
 }
 
 export async function fetchIssueEvents(issueId: string): Promise<EventRow[]> {
@@ -167,6 +205,36 @@ export async function fetchProjectEvents(projectId: string): Promise<EventRow[]>
 
 export async function fetchEvent(eventId: string): Promise<EventRow> {
   return fetchJson<EventRow>(`/events/${eventId}`);
+}
+
+export async function register(input: RegisterInput): Promise<{ token: string; user: AuthUser }> {
+  return fetchJson<{ token: string; user: AuthUser }>("/auth/register", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+}
+
+export async function login(input: RegisterInput): Promise<{ token: string; user: AuthUser }> {
+  return fetchJson<{ token: string; user: AuthUser }>("/auth/login", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+}
+
+export async function logout(): Promise<{ success: true }> {
+  return fetchJson<{ success: true }>("/auth/logout", {
+    method: "POST"
+  });
+}
+
+export async function fetchMe(): Promise<AuthUser> {
+  return fetchJson<AuthUser>("/auth/me");
 }
 
 export function fmt(iso: string): string {

@@ -8,7 +8,7 @@ import { z } from "zod";
 
 @Injectable()
 export class AppService {
-  async createProject(body: unknown) {
+  async createProject(ownerId: string, body: unknown) {
     const parsed = createProjectSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
@@ -17,6 +17,7 @@ export class AppService {
     const apiKey = await generateUniqueApiKey();
     const project = await prisma.project.create({
       data: {
+        ownerId,
         name: parsed.data.name.trim(),
         apiKey
       }
@@ -56,74 +57,87 @@ export class AppService {
       parsed.data.stack
     );
 
-    const issue = await prisma.issue.upsert({
-      where: {
-        projectId_fingerprint: {
-          projectId: project.id,
-          fingerprint
-        }
-      },
-      create: {
-        projectId: project.id,
-        fingerprint,
-        message: parsed.data.message,
-        count: 1,
-        firstSeen: new Date(parsed.data.timestamp),
-        lastSeen: new Date(parsed.data.timestamp)
-      },
-      update: {
-        count: { increment: 1 },
-        message: parsed.data.message,
-        lastSeen: new Date(parsed.data.timestamp)
-      }
-    });
+    const hasExtendedNetworkColumns = parsed.data.networkRequests?.length
+      ? await hasNetworkInspectorColumns()
+      : false;
 
-    const createdEvent = await prisma.event.create({
-      data: {
-        projectId: project.id,
-        issueId: issue.id,
-        message: parsed.data.message,
-        stack: parsed.data.stack,
-        fileName: source?.fileName,
-        line: source?.line,
-        column: source?.column,
-        url: parsed.data.url,
-        userAgent: parsed.data.userAgent,
-        userId: parsed.data.userId,
-        createdAt: new Date(parsed.data.timestamp)
-      }
-    });
-
-    if (parsed.data.breadcrumbs?.length) {
-      await prisma.breadcrumb.createMany({
-        data: parsed.data.breadcrumbs.map((item) => ({
-          eventId: createdEvent.id,
-          type: item.type,
-          message: item.message,
-          data: item.data as Prisma.InputJsonValue | undefined,
-          createdAt: new Date(item.createdAt)
-        }))
-      });
-    }
-
-    if (parsed.data.networkRequests?.length) {
-      await persistNetworkRequestsCompat(createdEvent.id, parsed.data.networkRequests);
-    }
-
-    if (parsed.data.replayEvents?.length) {
-      await prisma.replayChunk.upsert({
-        where: { eventId: createdEvent.id },
+    return prisma.$transaction(async (transaction) => {
+      const issue = await transaction.issue.upsert({
+        where: {
+          projectId_fingerprint: {
+            projectId: project.id,
+            fingerprint
+          }
+        },
         create: {
-          eventId: createdEvent.id,
-          events: parsed.data.replayEvents as Prisma.InputJsonValue
+          projectId: project.id,
+          fingerprint,
+          message: parsed.data.message,
+          count: 1,
+          firstSeen: new Date(parsed.data.timestamp),
+          lastSeen: new Date(parsed.data.timestamp)
         },
         update: {
-          events: parsed.data.replayEvents as Prisma.InputJsonValue
+          count: { increment: 1 },
+          message: parsed.data.message,
+          lastSeen: new Date(parsed.data.timestamp)
         }
       });
-    }
 
-    return { success: true, eventId: createdEvent.id };
+      const createdEvent = await transaction.event.create({
+        data: {
+          projectId: project.id,
+          issueId: issue.id,
+          message: parsed.data.message,
+          stack: parsed.data.stack,
+          fileName: source?.fileName,
+          line: source?.line,
+          column: source?.column,
+          url: parsed.data.url,
+          userAgent: parsed.data.userAgent,
+          userId: parsed.data.userId,
+          userName: parsed.data.userName,
+          userRole: parsed.data.userRole,
+          createdAt: new Date(parsed.data.timestamp)
+        }
+      });
+
+      if (parsed.data.breadcrumbs?.length) {
+        await transaction.breadcrumb.createMany({
+          data: parsed.data.breadcrumbs.map((item) => ({
+            eventId: createdEvent.id,
+            type: item.type,
+            message: item.message,
+            data: item.data as Prisma.InputJsonValue | undefined,
+            createdAt: new Date(item.createdAt)
+          }))
+        });
+      }
+
+      if (parsed.data.networkRequests?.length) {
+        await persistNetworkRequestsCompat(
+          transaction,
+          createdEvent.id,
+          parsed.data.networkRequests,
+          hasExtendedNetworkColumns
+        );
+      }
+
+      if (parsed.data.replayEvents?.length) {
+        await transaction.replayChunk.upsert({
+          where: { eventId: createdEvent.id },
+          create: {
+            eventId: createdEvent.id,
+            events: parsed.data.replayEvents as Prisma.InputJsonValue
+          },
+          update: {
+            events: parsed.data.replayEvents as Prisma.InputJsonValue
+          }
+        });
+      }
+
+      return { success: true, eventId: createdEvent.id };
+    });
   }
 
   async uploadReplay(eventId: string, body: unknown) {
@@ -192,8 +206,9 @@ export class AppService {
     return { success: true };
   }
 
-  async getProjects() {
+  async getProjects(ownerId: string) {
     const projects = await prisma.project.findMany({
+      where: { ownerId },
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
@@ -228,9 +243,8 @@ export class AppService {
     return withToday;
   }
 
-  async getProjectEvents(projectId: string) {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException("Project not found");
+  async getProjectEvents(ownerId: string, projectId: string) {
+    await ensureProjectOwned(projectId, ownerId);
 
     return prisma.event.findMany({
       where: { projectId },
@@ -238,15 +252,12 @@ export class AppService {
     });
   }
 
-  async getProject(projectId: string) {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException("Project not found");
-    return project;
+  async getProject(ownerId: string, projectId: string) {
+    return ensureProjectOwned(projectId, ownerId);
   }
 
-  async rotateProjectKey(projectId: string) {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException("Project not found");
+  async rotateProjectKey(ownerId: string, projectId: string) {
+    await ensureProjectOwned(projectId, ownerId);
 
     const apiKey = await generateUniqueApiKey();
     return prisma.project.update({
@@ -255,31 +266,31 @@ export class AppService {
     });
   }
 
-  async deleteProject(projectId: string) {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException("Project not found");
+  async deleteProject(ownerId: string, projectId: string) {
+    await ensureProjectOwned(projectId, ownerId);
 
-    const eventIds = (await prisma.event.findMany({
-      where: { projectId },
-      select: { id: true }
-    })).map((item) => item.id);
+    await prisma.$transaction(async (transaction) => {
+      const eventIds = (await transaction.event.findMany({
+        where: { projectId },
+        select: { id: true }
+      })).map((item) => item.id);
 
-    if (eventIds.length > 0) {
-      await prisma.breadcrumb.deleteMany({ where: { eventId: { in: eventIds } } });
-      await prisma.networkRequest.deleteMany({ where: { eventId: { in: eventIds } } });
-      await prisma.replayChunk.deleteMany({ where: { eventId: { in: eventIds } } });
-    }
+      if (eventIds.length > 0) {
+        await transaction.breadcrumb.deleteMany({ where: { eventId: { in: eventIds } } });
+        await transaction.networkRequest.deleteMany({ where: { eventId: { in: eventIds } } });
+        await transaction.replayChunk.deleteMany({ where: { eventId: { in: eventIds } } });
+      }
 
-    await prisma.event.deleteMany({ where: { projectId } });
-    await prisma.issue.deleteMany({ where: { projectId } });
-    await prisma.project.delete({ where: { id: projectId } });
+      await transaction.event.deleteMany({ where: { projectId } });
+      await transaction.issue.deleteMany({ where: { projectId } });
+      await transaction.project.delete({ where: { id: projectId } });
+    });
 
     return { success: true };
   }
 
-  async getProjectIssues(projectId: string) {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException("Project not found");
+  async getProjectIssues(ownerId: string, projectId: string) {
+    await ensureProjectOwned(projectId, ownerId);
 
     const issues = await prisma.issue.findMany({
       where: { projectId },
@@ -314,9 +325,10 @@ export class AppService {
     }));
   }
 
-  async getIssue(issueId: string) {
+  async getIssue(ownerId: string, issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
+    await ensureProjectOwned(issue.projectId, ownerId);
 
     const issueEvents = await prisma.event.findMany({
       where: { issueId },
@@ -336,7 +348,7 @@ export class AppService {
     };
   }
 
-  async updateIssue(issueId: string, body: unknown) {
+  async updateIssue(ownerId: string, issueId: string, body: unknown) {
     const parsed = updateIssueSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
@@ -344,6 +356,7 @@ export class AppService {
 
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
+    await ensureProjectOwned(issue.projectId, ownerId);
 
     return prisma.issue.update({
       where: { id: issueId },
@@ -356,9 +369,10 @@ export class AppService {
     });
   }
 
-  async getIssueEvents(issueId: string) {
+  async getIssueEvents(ownerId: string, issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
+    await ensureProjectOwned(issue.projectId, ownerId);
 
     return prisma.event.findMany({
       where: { issueId },
@@ -367,7 +381,7 @@ export class AppService {
     });
   }
 
-  async getEvent(eventId: string) {
+  async getEvent(ownerId: string, eventId: string) {
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
@@ -377,6 +391,7 @@ export class AppService {
     });
 
     if (!event) throw new NotFoundException("Event not found");
+    await ensureProjectOwned(event.projectId, ownerId);
 
     const networkRequests = await getNetworkRequestsCompat(eventId);
 
@@ -385,6 +400,14 @@ export class AppService {
       networkRequests
     };
   }
+}
+
+async function ensureProjectOwned(projectId: string, ownerId: string) {
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project || project.ownerId !== ownerId) {
+    throw new NotFoundException("Project not found");
+  }
+  return project;
 }
 
 const createProjectSchema = z.object({
@@ -495,6 +518,7 @@ function isPreferredFrame(filePath: string): boolean {
 }
 
 async function persistNetworkRequestsCompat(
+  database: Pick<typeof prisma, "networkRequest">,
   eventId: string,
   items: Array<{
     method: string;
@@ -507,11 +531,11 @@ async function persistNetworkRequestsCompat(
     error?: string;
     duration?: number;
     createdAt: string;
-  }>
+  }>,
+  hasExtendedColumns: boolean
 ): Promise<void> {
-  const hasExtendedColumns = await hasNetworkInspectorColumns();
   if (hasExtendedColumns) {
-    await prisma.networkRequest.createMany({
+    await database.networkRequest.createMany({
       data: items.map((item) => ({
         eventId,
         method: item.method,
@@ -529,7 +553,7 @@ async function persistNetworkRequestsCompat(
     return;
   }
 
-  await prisma.networkRequest.createMany({
+  await database.networkRequest.createMany({
     data: items.map((item) => ({
       eventId,
       method: item.method,

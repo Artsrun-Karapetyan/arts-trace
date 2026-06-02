@@ -1,9 +1,9 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ProjectSetupCard } from "../../components/ProjectSetupCard";
-import { deleteProject, fetchProject, rotateProjectKey } from "../../lib";
+import { ProjectSetupCard } from "../../../components/ProjectSetupCard";
+import { deleteProject, fetchProject, rotateProjectKey } from "../../../lib";
 
-export const Route = createFileRoute("/projects/$id/settings")({
+export const Route = createFileRoute("/_authenticated/projects/$id/settings")({
   loader: ({ params }) => fetchProject(params.id),
   component: ProjectSettingsPage
 });
