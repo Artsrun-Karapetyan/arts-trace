@@ -33,6 +33,8 @@ export const ingestEventSchema = z.object({
   userAgent: z.string().min(1),
   timestamp: z.string().datetime(),
   userId: z.string().optional(),
+  userName: z.string().max(200).optional(),
+  userRole: z.string().max(120).optional(),
   breadcrumbs: z.array(breadcrumbSchema).max(100).optional(),
   networkRequests: z.array(networkRequestSchema).max(100).optional(),
   replayEvents: z.array(z.record(z.string(), z.unknown())).max(5000).optional()

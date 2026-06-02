@@ -87,6 +87,8 @@ model Event {
   url       String
   userAgent String?
   userId    String?
+  userName  String?
+  userRole  String?
 
   createdAt DateTime @default(now())
 

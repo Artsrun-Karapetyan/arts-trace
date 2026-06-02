@@ -72,6 +72,8 @@ type Event = {
   url: string;
   userAgent: string | null;
   userId: string | null;
+  userName: string | null;
+  userRole: string | null;
   createdAt: Date;
   project: Project;
   breadcrumbs?: Breadcrumb[];
@@ -182,6 +184,8 @@ type EventCreateInput = {
     url: string;
     userAgent?: string | null;
     userId?: string | null;
+    userName?: string | null;
+    userRole?: string | null;
     createdAt: Date;
   };
 };

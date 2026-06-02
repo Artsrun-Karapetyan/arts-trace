@@ -96,6 +96,8 @@ export class AppService {
           url: parsed.data.url,
           userAgent: parsed.data.userAgent,
           userId: parsed.data.userId,
+          userName: parsed.data.userName,
+          userRole: parsed.data.userRole,
           createdAt: new Date(parsed.data.timestamp)
         }
       });

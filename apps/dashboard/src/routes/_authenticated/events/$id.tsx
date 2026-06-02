@@ -160,6 +160,23 @@ function EventDetailPage() {
           <div className="event-info-item">
             <div className="event-info-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="7" r="4" />
+                <path d="M5.5 21a6.5 6.5 0 0 1 13 0" />
+              </svg>
+            </div>
+            <div className="event-info-content">
+              <div className="event-info-label">Affected user</div>
+              <div className="event-info-value">
+                {event.userName ?? event.userId ?? "-"}
+                {event.userRole ? <span className="chip chip-mid event-user-role">{event.userRole}</span> : null}
+              </div>
+              {event.userName && event.userId ? <div className="mono small-note event-user-id">{event.userId}</div> : null}
+            </div>
+          </div>
+
+          <div className="event-info-item">
+            <div className="event-info-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>

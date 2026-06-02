@@ -112,6 +112,9 @@ export type EventRow = {
   column?: number | null;
   url: string;
   userAgent?: string | null;
+  userId?: string | null;
+  userName?: string | null;
+  userRole?: string | null;
   createdAt: string;
   breadcrumbs?: Array<{
     id: string;

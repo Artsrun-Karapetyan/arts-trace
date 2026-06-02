@@ -28,7 +28,11 @@ init({
   endpoint: "http://localhost:3100/events"
 });
 
-setUser(authenticatedUser.id);
+setUser({
+  id: authenticatedUser.id,
+  fullName: authenticatedUser.fullName,
+  role: authenticatedUser.role
+});
 
 // Call on logout:
 clearUser();`,
@@ -78,13 +82,33 @@ clearUser();`,
       [
         <span className="code-token code-function" key="f4">setUser</span>,
         <span className="code-token code-punct" key="p9">{"("}</span>,
-        <span className="code-token code-prop" key="p10">authenticatedUser.id</span>,
-        <span className="code-token code-punct" key="p11">{`);`}</span>
+        <span className="code-token code-punct" key="p10">{"{"}</span>
+      ],
+      [
+        "  ",
+        <span className="code-token code-prop" key="p11">id</span>,
+        <span className="code-token code-punct" key="p12">:</span>,
+        " authenticatedUser.id,"
+      ],
+      [
+        "  ",
+        <span className="code-token code-prop" key="p13">fullName</span>,
+        <span className="code-token code-punct" key="p14">:</span>,
+        " authenticatedUser.fullName,"
+      ],
+      [
+        "  ",
+        <span className="code-token code-prop" key="p15">role</span>,
+        <span className="code-token code-punct" key="p16">:</span>,
+        " authenticatedUser.role"
+      ],
+      [
+        <span className="code-token code-punct" key="p17">{`});`}</span>
       ],
       [],
       [
         <span className="code-token code-function" key="f5">clearUser</span>,
-        <span className="code-token code-punct" key="p12">{`();`}</span>
+        <span className="code-token code-punct" key="p18">{`();`}</span>
       ]
     ],
     [apiKey]
@@ -175,7 +199,7 @@ clearUser();`,
           </button>
           <div className="project-setup-identity-note">
             <strong>Track affected users correctly.</strong>
-            <span>Call <code>setUser(user.id)</code> after login or session restore, and <code>clearUser()</code> on logout.</span>
+            <span>Call <code>setUser({`{ id, fullName, role }`})</code> after login or session restore, and <code>clearUser()</code> on logout.</span>
           </div>
         </div>
       </div>

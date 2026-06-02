@@ -8,3 +8,4 @@ coverage
 .DS_Store
 *.tgz
 packages/browser/*.tgz
+apps/dashboard/src/routeTree.gen.ts

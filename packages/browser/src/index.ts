@@ -13,6 +13,8 @@ type IngestEventInput = {
   userAgent: string;
   timestamp: string;
   userId?: string;
+  userName?: string;
+  userRole?: string;
   breadcrumbs?: Array<{
     type: string;
     message: string;
@@ -43,6 +45,13 @@ type InitOptions = {
   replayPostErrorMs?: number;
 };
 
+type UserContext = {
+  id: string;
+  name?: string;
+  fullName?: string;
+  role?: string;
+};
+
 type Breadcrumb = NonNullable<IngestEventInput["breadcrumbs"]>[number];
 type NetworkRequest = NonNullable<IngestEventInput["networkRequests"]>[number];
 
@@ -64,14 +73,14 @@ const networkRequests: NetworkRequest[] = [];
 const replayEvents: Array<Record<string, unknown>> = [];
 let stopReplay: (() => void) | null = null;
 
-let currentUserId: string | undefined = undefined;
+let currentUser: UserContext | undefined = undefined;
 
-export function setUser(id: string): void {
-  currentUserId = id;
+export function setUser(user: string | UserContext): void {
+  currentUser = typeof user === "string" ? { id: user } : user;
 }
 
 export function clearUser(): void {
-  currentUserId = undefined;
+  currentUser = undefined;
 }
 
 function getOrCreateSessionId(): string {
@@ -93,7 +102,7 @@ export function init(options: InitOptions): void {
 
   const endpoint = options.endpoint ?? DEFAULT_ENDPOINT;
   if (options.userId) {
-    currentUserId = options.userId;
+    currentUser = { id: options.userId };
   }
   replayPreErrorMs = normalizeDuration(options.replayPreErrorMs, DEFAULT_REPLAY_PRE_ERROR_MS, 2_000, 60_000);
   replayPostErrorMs = normalizeDuration(options.replayPostErrorMs, DEFAULT_REPLAY_POST_ERROR_MS, 0, 30_000);
@@ -120,7 +129,7 @@ export function init(options: InitOptions): void {
       url: window.location.href,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
-      userId: currentUserId ?? getOrCreateSessionId(),
+      ...getUserContext(),
       breadcrumbs: snapshotBreadcrumbs(),
       networkRequests: snapshotNetwork(),
       replayEvents: snapshotReplay()
@@ -147,7 +156,7 @@ export function init(options: InitOptions): void {
       url: window.location.href,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
-      userId: currentUserId ?? getOrCreateSessionId(),
+      ...getUserContext(),
       breadcrumbs: snapshotBreadcrumbs(),
       networkRequests: snapshotNetwork(),
       replayEvents: snapshotReplay()
@@ -157,6 +166,14 @@ export function init(options: InitOptions): void {
   });
 
   isInitialized = true;
+}
+
+function getUserContext(): Pick<IngestEventInput, "userId" | "userName" | "userRole"> {
+  return {
+    userId: currentUser?.id ?? getOrCreateSessionId(),
+    userName: currentUser?.name ?? currentUser?.fullName,
+    userRole: currentUser?.role
+  };
 }
 
 function startReplayCapture(): void {
