@@ -51,13 +51,14 @@ Notes:
 - API reads `PORT` from `.env` (default `3100`).
 - Dashboard reads `VITE_API_BASE_URL` for API requests.
 - For Cloudflare Pages, set `VITE_API_BASE_URL` to the public Render API URL.
-- For Render, set `DATABASE_URL` to the Neon pooled connection string.
+- For Render, set `DATABASE_URL` to the Neon pooled connection string and `DIRECT_URL` to the Neon direct connection string for migrations.
 
 Production envs:
 
 ```env
 PORT=3100
 DATABASE_URL=postgresql://...pooled...neon.tech/...?...sslmode=require
+DIRECT_URL=postgresql://...direct...neon.tech/...?...sslmode=require
 VITE_API_BASE_URL=https://your-render-api.onrender.com
 VITE_ARTSTRACE_API_KEY=your_project_public_api_key
 ```
