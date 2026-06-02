@@ -21,7 +21,7 @@ export function ProjectSetupCard({
   const [copied, setCopied] = useState<"key" | "snippet" | null>(null);
 
   const snippet = useMemo(
-    () => `import { clearUser, init, setUser } from "@artstrace/browser";
+    () => `import { clearUser, init, setUser } from "arts-trace";
 
 init({
   apiKey: "${apiKey}",
@@ -51,7 +51,7 @@ clearUser();`,
         " } ",
         <span className="code-token code-keyword" key="k2">from</span>,
         " ",
-        <span className="code-token code-string" key="s1">"@artstrace/browser"</span>,
+        <span className="code-token code-string" key="s1">"arts-trace"</span>,
         ";"
       ],
       [],

@@ -93,7 +93,7 @@ Notes:
 
 ## Later (When Package Is Published to npm)
 
-After publishing `@artstrace/browser`, keep the same process:
+After publishing `arts-trace`, keep the same process:
 
 - install/update package
 - keep `release` in SDK init
