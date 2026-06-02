@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as ProjectsCreateRouteImport } from './routes/projects/create'
 import { Route as IssuesIdRouteImport } from './routes/issues/$id'
 import { Route as EventsIdRouteImport } from './routes/events/$id'
 import { Route as ProjectsIdSettingsRouteImport } from './routes/projects/$id.settings'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsCreateRoute = ProjectsCreateRouteImport.update({
+  id: '/projects/create',
+  path: '/projects/create',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IssuesIdRoute = IssuesIdRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/events/$id': typeof EventsIdRoute
   '/issues/$id': typeof IssuesIdRoute
+  '/projects/create': typeof ProjectsCreateRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$id/events': typeof ProjectsIdEventsRoute
   '/projects/$id/issues': typeof ProjectsIdIssuesRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/events/$id': typeof EventsIdRoute
   '/issues/$id': typeof IssuesIdRoute
+  '/projects/create': typeof ProjectsCreateRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$id/events': typeof ProjectsIdEventsRoute
   '/projects/$id/issues': typeof ProjectsIdIssuesRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/events/$id': typeof EventsIdRoute
   '/issues/$id': typeof IssuesIdRoute
+  '/projects/create': typeof ProjectsCreateRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$id/events': typeof ProjectsIdEventsRoute
   '/projects/$id/issues': typeof ProjectsIdIssuesRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/events/$id'
     | '/issues/$id'
+    | '/projects/create'
     | '/projects/'
     | '/projects/$id/events'
     | '/projects/$id/issues'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/events/$id'
     | '/issues/$id'
+    | '/projects/create'
     | '/projects'
     | '/projects/$id/events'
     | '/projects/$id/issues'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/events/$id'
     | '/issues/$id'
+    | '/projects/create'
     | '/projects/'
     | '/projects/$id/events'
     | '/projects/$id/issues'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EventsIdRoute: typeof EventsIdRoute
   IssuesIdRoute: typeof IssuesIdRoute
+  ProjectsCreateRoute: typeof ProjectsCreateRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ProjectsIdEventsRoute: typeof ProjectsIdEventsRoute
   ProjectsIdIssuesRoute: typeof ProjectsIdIssuesRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects/'
       preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/create': {
+      id: '/projects/create'
+      path: '/projects/create'
+      fullPath: '/projects/create'
+      preLoaderRoute: typeof ProjectsCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/issues/$id': {
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EventsIdRoute: EventsIdRoute,
   IssuesIdRoute: IssuesIdRoute,
+  ProjectsCreateRoute: ProjectsCreateRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ProjectsIdEventsRoute: ProjectsIdEventsRoute,
   ProjectsIdIssuesRoute: ProjectsIdIssuesRoute,

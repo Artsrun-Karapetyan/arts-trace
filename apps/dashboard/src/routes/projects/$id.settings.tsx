@@ -1,5 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ProjectSetupCard } from "../../components/ProjectSetupCard";
 import { deleteProject, fetchProject, rotateProjectKey } from "../../lib";
 
 export const Route = createFileRoute("/projects/$id/settings")({
@@ -13,7 +14,20 @@ function ProjectSettingsPage() {
   const [apiKey, setApiKey] = useState(project.apiKey);
   const [busy, setBusy] = useState<"rotate" | "delete" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<"key" | "snippet" | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  useEffect(() => {
+    if (!deleteOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setDeleteOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteOpen]);
 
   async function onRotate() {
     try {
@@ -29,9 +43,6 @@ function ProjectSettingsPage() {
   }
 
   async function onDelete() {
-    const confirmed = window.confirm("Delete this project and all related issues/events?");
-    if (!confirmed) return;
-
     try {
       setBusy("delete");
       setError(null);
@@ -42,33 +53,6 @@ function ProjectSettingsPage() {
       setBusy(null);
     }
   }
-
-  async function copy(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // no-op
-    }
-  }
-
-  async function copyKey() {
-    await copy(apiKey);
-    setCopied("key");
-    setTimeout(() => setCopied(null), 1200);
-  }
-
-  async function copySnippet() {
-    await copy(snippet);
-    setCopied("snippet");
-    setTimeout(() => setCopied(null), 1200);
-  }
-
-  const snippet = `import { init } from "@artstrace/browser";
-
-init({
-  apiKey: "${apiKey}",
-  endpoint: "http://localhost:3100/events"
-});`;
 
   return (
     <div>
@@ -90,35 +74,72 @@ init({
           <p><strong>Name:</strong> {project.name}</p>
           <p><strong>Project ID:</strong> <code className="mono">{project.id}</code></p>
         </div>
-        <p style={{ marginTop: 10 }}><strong>API Key:</strong> <code className="mono">{apiKey}</code></p>
-
-        <hr className="section-sep" />
-
-        <div className="section-title">Integration</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className="btn btn-ghost" onClick={copyKey}>
-            {copied === "key" ? "✓ Copied" : "Copy API Key"}
-          </button>
-          <button className="btn btn-ghost" onClick={copySnippet}>
-            {copied === "snippet" ? "✓ Copied" : "Copy SDK Snippet"}
-          </button>
-          <button className="btn" disabled={busy !== null} onClick={onRotate}>
-            {busy === "rotate" ? "Rotating..." : "Rotate Key"}
-          </button>
-        </div>
-
         {error ? <p className="small-note" style={{ color: "#f87171" }}>{error}</p> : null}
       </div>
+
+      <ProjectSetupCard
+        projectId={project.id}
+        projectName={project.name}
+        apiKey={apiKey}
+        variant="settings"
+        onRotate={onRotate}
+        rotating={busy === "rotate"}
+      />
 
       <div className="card card-danger" style={{ marginBottom: 14 }}>
         <div className="section-title">⚠ Danger Zone</div>
         <p className="small-note" style={{ marginTop: 0, marginBottom: 12 }}>Deleting project removes all issues and events permanently.</p>
-        <button className="btn btn-danger" disabled={busy !== null} onClick={onDelete}>
+        <button className="btn btn-danger" disabled={busy !== null} onClick={() => setDeleteOpen(true)}>
           {busy === "delete" ? "Deleting..." : "Delete Project"}
         </button>
       </div>
 
-      <pre>{snippet}</pre>
+      {deleteOpen ? (
+        <div
+          className="modal-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && busy !== "delete") {
+              setDeleteOpen(false);
+            }
+          }}
+        >
+          <div className="modal-card">
+            <div className="modal-head">
+              <div>
+                <div className="section-title">Confirm deletion</div>
+                <h3 className="modal-title">Delete {project.name}?</h3>
+              </div>
+              <button className="icon-btn modal-close" type="button" onClick={() => busy !== "delete" && setDeleteOpen(false)}>
+                ×
+              </button>
+            </div>
+
+            <p className="modal-copy">
+              This removes the project, all issues, events, replays, breadcrumbs, and network data permanently.
+            </p>
+
+            <div className="modal-summary">
+              <div>
+                <div className="modal-summary-label">Project</div>
+                <div className="modal-summary-value">{project.name}</div>
+              </div>
+              <div>
+                <div className="modal-summary-label">Project ID</div>
+                <code className="mono modal-summary-code">{project.id}</code>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn btn-ghost" type="button" disabled={busy === "delete"} onClick={() => setDeleteOpen(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-danger" type="button" disabled={busy === "delete"} onClick={onDelete}>
+                {busy === "delete" ? "Deleting..." : "Delete project"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

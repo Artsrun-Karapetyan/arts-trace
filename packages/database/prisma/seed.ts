@@ -1,6 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { config as loadEnv } from "dotenv";
+import { createRequire } from "node:module";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
+
+loadEnv({ path: new URL("../../../.env", import.meta.url) });
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -10,6 +13,8 @@ if (!connectionString) {
 
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
+const require = createRequire(import.meta.url);
+const { PrismaClient } = require("@prisma/client/index") as { PrismaClient: any };
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
