@@ -5,7 +5,7 @@ Deploy `apps/api` as a Render Web Service.
 ## Service settings
 
 - **Root Directory**: repo root
-- **Build Command**: `pnpm i --frozen-lockfile && pnpm db:generate`
+- **Build Command**: `pnpm i --frozen-lockfile && pnpm db:migrate:deploy && pnpm db:generate`
 - **Start Command**: `pnpm --filter @artstrace/api start`
 - **Runtime**: Node
 
@@ -20,6 +20,6 @@ PORT=3100
 
 ## After deploy
 
-- Run migrations against Neon.
+- Run migrations against Neon with `pnpm db:migrate:deploy`.
 - Copy the public Render URL into `VITE_API_BASE_URL` for Cloudflare Pages.
 - Use the same API URL in the browser SDK `endpoint`.
