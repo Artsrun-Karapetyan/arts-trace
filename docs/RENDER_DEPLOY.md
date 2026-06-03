@@ -22,5 +22,6 @@ PORT=3100
 ## After deploy
 
 - Run migrations against Neon with `pnpm db:migrate:deploy`.
+- For local one-command migrations, create `.env.render` and run `pnpm db:migrate:deploy:render`.
 - Copy the public Render URL into `VITE_API_BASE_URL` for Cloudflare Pages.
 - Use the same API URL in the browser SDK `endpoint`.

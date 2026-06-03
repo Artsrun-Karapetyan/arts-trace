@@ -9,6 +9,7 @@
     "db:down": "docker compose down",
     "db:reset": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:reset",
     "db:migrate:deploy": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:migrate:deploy",
+    "db:migrate:deploy:render": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env.render -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:migrate:deploy",
     "db:migrate": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:migrate -- ",
     "db:migrate:new": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:migrate -- --name",
     "db:seed": "PNPM_CONFIG_MINIMUM_RELEASE_AGE=0 dotenv -e .env -- npx --yes pnpm@11.5.0 --filter @artstrace/database prisma:seed",
