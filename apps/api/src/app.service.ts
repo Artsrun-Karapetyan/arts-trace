@@ -202,6 +202,7 @@ export class AppService {
         content: parsed.data.content
       }
     });
+    sourceMapCache.delete(getSourceMapCacheKey(project.id, parsed.data.release, fileName));
 
     return { success: true };
   }
@@ -729,7 +730,7 @@ async function loadInlineSourceMap(filePath: string): Promise<string | null> {
 
 async function loadSourceMapFromDb(projectId: string, release: string, filePath: string): Promise<string | null> {
   const normalized = normalizeFileName(filePath);
-  const cacheKey = `${projectId}:${release}:${normalized}`;
+  const cacheKey = getSourceMapCacheKey(projectId, release, normalized);
   if (sourceMapCache.has(cacheKey)) return sourceMapCache.get(cacheKey) ?? null;
 
   const sourceMap = await prisma.sourceMap.findUnique({
@@ -751,6 +752,10 @@ async function loadSourceMapFromDb(projectId: string, release: string, filePath:
 function normalizeFileName(filePathOrName: string): string {
   const noQuery = filePathOrName.split("?")[0]?.split("#")[0] ?? filePathOrName;
   return noQuery.split("/").pop() ?? noQuery;
+}
+
+function getSourceMapCacheKey(projectId: string, release: string, fileName: string): string {
+  return `${projectId}:${release}:${normalizeFileName(fileName)}`;
 }
 
 function buildEnvironmentAnalytics(userAgents: Array<string | null>): {

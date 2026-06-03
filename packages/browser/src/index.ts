@@ -55,7 +55,7 @@ type UserContext = {
 type Breadcrumb = NonNullable<IngestEventInput["breadcrumbs"]>[number];
 type NetworkRequest = NonNullable<IngestEventInput["networkRequests"]>[number];
 
-const DEFAULT_ENDPOINT = "http://localhost:3000/events";
+const DEFAULT_ENDPOINT = "http://localhost:3100/events";
 const MAX_BREADCRUMBS = 40;
 const MAX_NETWORK = 50;
 const MAX_REPLAY = 2000;
