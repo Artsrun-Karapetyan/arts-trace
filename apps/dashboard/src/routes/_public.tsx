@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_public")({
   beforeLoad: async ({ context }) => {
@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_public")({
       throw redirect({ to: "/projects" });
     }
   },
-  component: PublicLayout
+  component: PublicLayout,
 });
 
 function PublicLayout() {

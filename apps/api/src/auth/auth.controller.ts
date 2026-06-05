@@ -1,5 +1,16 @@
-import { Body, Controller, Get, Headers, Inject, Patch, Post, Req } from "@nestjs/common";
-import { Public } from "./public.decorator";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Inject,
+  Patch,
+  Post,
+  Req,
+} from "@nestjs/common";
+
+import { Public } from "@/common/public.decorator";
+
 import { AuthService } from "./auth.service";
 
 type AuthedRequest = {
@@ -40,7 +51,9 @@ export class AuthController {
 
   @Post("logout")
   logout(@Headers("authorization") authorization: string | undefined) {
-    const token = authorization?.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+    const token = authorization?.startsWith("Bearer ")
+      ? authorization.slice(7).trim()
+      : "";
     return this.authService.logout(token);
   }
 }

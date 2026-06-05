@@ -32,7 +32,7 @@ async function fetchJson<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const res = await fetch(url, {
     ...init,
-    headers
+    headers,
   });
   const contentType = res.headers.get("content-type") ?? "";
   const body = await res.text();
@@ -46,7 +46,9 @@ async function fetchJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!contentType.includes("application/json")) {
-    throw new Error(`Expected JSON from ${url}, got ${contentType || "unknown"} (starts with: ${body.slice(0, 40)})`);
+    throw new Error(
+      `Expected JSON from ${url}, got ${contentType || "unknown"} (starts with: ${body.slice(0, 40)})`,
+    );
   }
 
   return JSON.parse(body) as T;
@@ -235,13 +237,15 @@ export async function fetchProjects(): Promise<ProjectRow[]> {
   return fetchJson<ProjectRow[]>("/projects");
 }
 
-export async function createProject(input: CreateProjectInput): Promise<ProjectRow> {
+export async function createProject(
+  input: CreateProjectInput,
+): Promise<ProjectRow> {
   return fetchJson<ProjectRow>("/projects", {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
     },
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
@@ -251,17 +255,21 @@ export async function fetchProject(projectId: string): Promise<ProjectRow> {
 
 export async function rotateProjectKey(projectId: string): Promise<ProjectRow> {
   return fetchJson<ProjectRow>(`/projects/${projectId}/rotate-key`, {
-    method: "POST"
+    method: "POST",
   });
 }
 
-export async function deleteProject(projectId: string): Promise<{ success: true }> {
+export async function deleteProject(
+  projectId: string,
+): Promise<{ success: true }> {
   return fetchJson<{ success: true }>(`/projects/${projectId}`, {
-    method: "DELETE"
+    method: "DELETE",
   });
 }
 
-export async function fetchProjectIssues(projectId: string): Promise<IssueRow[]> {
+export async function fetchProjectIssues(
+  projectId: string,
+): Promise<IssueRow[]> {
   return fetchJson<IssueRow[]>(`/projects/${projectId}/issues`);
 }
 
@@ -269,49 +277,78 @@ export async function fetchIssue(issueId: string): Promise<IssueRow> {
   return fetchJson<IssueRow>(`/issues/${issueId}`);
 }
 
-export async function fetchProjectMembers(projectId: string): Promise<ProjectMemberRow[]> {
+export async function fetchProjectMembers(
+  projectId: string,
+): Promise<ProjectMemberRow[]> {
   return fetchJson<ProjectMemberRow[]>(`/projects/${projectId}/members`);
 }
 
-export async function createProjectMember(projectId: string, input: { name: string; role?: ProjectRole }): Promise<ProjectMemberRow> {
+export async function createProjectMember(
+  projectId: string,
+  input: { name: string; role?: ProjectRole },
+): Promise<ProjectMemberRow> {
   return fetchJson<ProjectMemberRow>(`/projects/${projectId}/members`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
-export async function addExistingProjectMember(projectId: string, input: { email: string; role?: ProjectRole }): Promise<ProjectMemberRow> {
-  return fetchJson<ProjectMemberRow>(`/projects/${projectId}/members/existing`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input)
-  });
+export async function addExistingProjectMember(
+  projectId: string,
+  input: { email: string; role?: ProjectRole },
+): Promise<ProjectMemberRow> {
+  return fetchJson<ProjectMemberRow>(
+    `/projects/${projectId}/members/existing`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
 }
 
-export async function updateProjectMember(projectId: string, memberId: string, input: { role: ProjectRole }): Promise<ProjectMemberRow> {
-  return fetchJson<ProjectMemberRow>(`/projects/${projectId}/members/${memberId}`, {
-    method: "PATCH",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input)
-  });
+export async function updateProjectMember(
+  projectId: string,
+  memberId: string,
+  input: { role: ProjectRole },
+): Promise<ProjectMemberRow> {
+  return fetchJson<ProjectMemberRow>(
+    `/projects/${projectId}/members/${memberId}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
 }
 
-export async function deleteProjectMember(projectId: string, memberId: string): Promise<{ success: true }> {
-  return fetchJson<{ success: true }>(`/projects/${projectId}/members/${memberId}`, {
-    method: "DELETE"
-  });
+export async function deleteProjectMember(
+  projectId: string,
+  memberId: string,
+): Promise<{ success: true }> {
+  return fetchJson<{ success: true }>(
+    `/projects/${projectId}/members/${memberId}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
-export async function fetchProjectInvites(projectId: string): Promise<ProjectInviteRow[]> {
+export async function fetchProjectInvites(
+  projectId: string,
+): Promise<ProjectInviteRow[]> {
   return fetchJson<ProjectInviteRow[]>(`/projects/${projectId}/invites`);
 }
 
-export async function createProjectInvite(projectId: string, input: { email: string; role?: ProjectRole }): Promise<ProjectInviteRow> {
+export async function createProjectInvite(
+  projectId: string,
+  input: { email: string; role?: ProjectRole },
+): Promise<ProjectInviteRow> {
   return fetchJson<ProjectInviteRow>(`/projects/${projectId}/invites`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
@@ -319,58 +356,76 @@ export async function fetchInvite(token: string): Promise<PublicInviteRow> {
   return fetchJson<PublicInviteRow>(`/invites/${token}`);
 }
 
-export async function acceptInvite(token: string): Promise<{ success: true; projectId: string }> {
-  return fetchJson<{ success: true; projectId: string }>(`/invites/${token}/accept`, {
-    method: "POST"
-  });
+export async function acceptInvite(
+  token: string,
+): Promise<{ success: true; projectId: string }> {
+  return fetchJson<{ success: true; projectId: string }>(
+    `/invites/${token}/accept`,
+    {
+      method: "POST",
+    },
+  );
 }
 
-export async function fetchIssueComments(issueId: string): Promise<IssueCommentRow[]> {
+export async function fetchIssueComments(
+  issueId: string,
+): Promise<IssueCommentRow[]> {
   return fetchJson<IssueCommentRow[]>(`/issues/${issueId}/comments`);
 }
 
-export async function createIssueComment(issueId: string, input: { body: string }): Promise<IssueCommentRow> {
+export async function createIssueComment(
+  issueId: string,
+  input: { body: string },
+): Promise<IssueCommentRow> {
   return fetchJson<IssueCommentRow>(`/issues/${issueId}/comments`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
 export async function updateIssue(
   issueId: string,
-  input: { status?: IssueStatus; priority?: IssuePriority; assignee?: string }
+  input: { status?: IssueStatus; priority?: IssuePriority; assignee?: string },
 ): Promise<IssueRow> {
   return fetchJson<IssueRow>(`/issues/${issueId}`, {
     method: "PATCH",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
     },
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
 export async function deleteIssue(issueId: string): Promise<{ success: true }> {
   return fetchJson<{ success: true }>(`/issues/${issueId}`, {
-    method: "DELETE"
+    method: "DELETE",
   });
 }
 
-export async function deleteProjectIssues(projectId: string, issueIds?: string[]): Promise<{ success: true; deleted: number }> {
-  return fetchJson<{ success: true; deleted: number }>(`/projects/${projectId}/issues`, {
-    method: "DELETE",
-    headers: {
-      "content-type": "application/json"
+export async function deleteProjectIssues(
+  projectId: string,
+  issueIds?: string[],
+): Promise<{ success: true; deleted: number }> {
+  return fetchJson<{ success: true; deleted: number }>(
+    `/projects/${projectId}/issues`,
+    {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(issueIds?.length ? { issueIds } : {}),
     },
-    body: JSON.stringify(issueIds?.length ? { issueIds } : {})
-  });
+  );
 }
 
 export async function fetchIssueEvents(issueId: string): Promise<EventRow[]> {
   return fetchJson<EventRow[]>(`/issues/${issueId}/events`);
 }
 
-export async function fetchProjectEvents(projectId: string): Promise<EventRow[]> {
+export async function fetchProjectEvents(
+  projectId: string,
+): Promise<EventRow[]> {
   return fetchJson<EventRow[]>(`/projects/${projectId}/events`);
 }
 
@@ -378,29 +433,33 @@ export async function fetchEvent(eventId: string): Promise<EventRow> {
   return fetchJson<EventRow>(`/events/${eventId}`);
 }
 
-export async function register(input: RegisterInput): Promise<{ token: string; user: AuthUser }> {
+export async function register(
+  input: RegisterInput,
+): Promise<{ token: string; user: AuthUser }> {
   return fetchJson<{ token: string; user: AuthUser }>("/auth/register", {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
     },
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
-export async function login(input: RegisterInput): Promise<{ token: string; user: AuthUser }> {
+export async function login(
+  input: RegisterInput,
+): Promise<{ token: string; user: AuthUser }> {
   return fetchJson<{ token: string; user: AuthUser }>("/auth/login", {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
     },
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
 export async function logout(): Promise<{ success: true }> {
   return fetchJson<{ success: true }>("/auth/logout", {
-    method: "POST"
+    method: "POST",
   });
 }
 
@@ -408,13 +467,15 @@ export async function fetchMe(): Promise<AuthUser> {
   return fetchJson<AuthUser>("/auth/me");
 }
 
-export async function updateMe(input: { name?: string | null }): Promise<AuthUser> {
+export async function updateMe(input: {
+  name?: string | null;
+}): Promise<AuthUser> {
   return fetchJson<AuthUser>("/auth/me", {
     method: "PATCH",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
     },
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 

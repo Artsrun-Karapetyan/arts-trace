@@ -1,17 +1,25 @@
-import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from "react";
 import {
-  clearAuthToken,
+  createContext,
+  type PropsWithChildren,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
   AUTH_UNAUTHORIZED_EVENT,
+  type AuthUser,
+  clearAuthToken,
   fetchMe,
   getAuthToken,
   login as loginRequest,
   logout as logoutRequest,
   register as registerRequest,
-  updateMe as updateMeRequest,
+  type RegisterInput,
   setAuthToken,
-  type AuthUser,
-  type RegisterInput
-} from "../lib";
+  updateMe as updateMeRequest,
+} from "@/lib";
 
 export type AuthContextValue = {
   token: string | null;
@@ -95,11 +103,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized);
-    return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized);
+    return () =>
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ token, user, login, register, logout, resolveUser, updateProfile }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        user,
+        login,
+        register,
+        logout,
+        resolveUser,
+        updateProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

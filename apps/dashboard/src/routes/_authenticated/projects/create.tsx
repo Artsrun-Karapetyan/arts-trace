@@ -1,10 +1,11 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { FormEvent, useState } from "react";
-import { ProjectSetupCard } from "../../../components/ProjectSetupCard";
-import { createProject } from "../../../lib";
+
+import { ProjectSetupCard } from "@/components/ProjectSetupCard";
+import { createProject } from "@/lib";
 
 export const Route = createFileRoute("/_authenticated/projects/create")({
-  component: CreateProjectPage
+  component: CreateProjectPage,
 });
 
 function CreateProjectPage() {
@@ -33,7 +34,9 @@ function CreateProjectPage() {
       setLastCreated(project);
       setName("");
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : "Failed to create project");
+      setCreateError(
+        error instanceof Error ? error.message : "Failed to create project",
+      );
     } finally {
       setCreating(false);
     }
@@ -44,7 +47,9 @@ function CreateProjectPage() {
       <div className="page-head" style={{ alignItems: "center" }}>
         <div>
           <h2>Create project</h2>
-          <p className="small-note" style={{ margin: "6px 0 0" }}>Create a project, then copy the setup below.</p>
+          <p className="small-note" style={{ margin: "6px 0 0" }}>
+            Create a project, then copy the setup below.
+          </p>
         </div>
         <div className="project-actions">
           <Link className="btn btn-ghost" to="/projects">
@@ -64,16 +69,26 @@ function CreateProjectPage() {
               onChange={(e) => setName(e.target.value)}
               aria-label="Project name"
             />
-            <button className="btn create-project-btn" type="submit" disabled={creating}>
+            <button
+              className="btn create-project-btn"
+              type="submit"
+              disabled={creating}
+            >
               {creating ? "Creating..." : "Create project"}
             </button>
           </form>
 
-          {createError ? <p className="small-note create-project-error">{createError}</p> : null}
+          {createError ? (
+            <p className="small-note create-project-error">{createError}</p>
+          ) : null}
         </div>
 
         {lastCreated ? (
-          <ProjectSetupCard projectId={lastCreated.id} projectName={lastCreated.name} apiKey={lastCreated.apiKey} />
+          <ProjectSetupCard
+            projectId={lastCreated.id}
+            projectName={lastCreated.name}
+            apiKey={lastCreated.apiKey}
+          />
         ) : null}
       </div>
     </div>

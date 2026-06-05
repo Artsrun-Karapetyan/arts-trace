@@ -1,6 +1,16 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
-import { prisma } from "@artstrace/database";
 import { createHash } from "node:crypto";
+
+import { prisma } from "@artstrace/database";
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+
+import { IS_PUBLIC_KEY } from "@/common/public.decorator";
 
 type AuthedRequest = {
   method?: string;
@@ -20,22 +30,23 @@ type AuthedRequest = {
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<AuthedRequest>();
-    const method = String(request.method ?? "").toUpperCase();
-    const path = String(request.url ?? "").split("?")[0] ?? "";
+  constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
-    if (
-      (method === "POST" && (path === "/auth/register" || path === "/auth/login")) ||
-      (method === "GET" && /^\/invites\/[^/]+$/.test(path)) ||
-      (method === "POST" && (path === "/events" || path === "/sourcemaps" || path === "/manual-reports")) ||
-      (method === "POST" && /^\/events\/[^/]+\/replay$/.test(path))
-    ) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
       return true;
     }
 
+    const request = context.switchToHttp().getRequest<AuthedRequest>();
     const authHeader = request.headers.authorization ?? "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : null;
 
     if (!token) {
       throw new UnauthorizedException("Missing auth token");
@@ -44,7 +55,7 @@ export class AuthGuard implements CanActivate {
     const tokenHash = createHash("sha256").update(token).digest("hex");
     const session = await prisma.session.findUnique({
       where: { tokenHash },
-      include: { user: true }
+      include: { user: true },
     });
 
     if (!session || session.expiresAt.getTime() <= Date.now()) {
@@ -60,7 +71,7 @@ export class AuthGuard implements CanActivate {
       id: session.user.id,
       email: session.user.email,
       name: session.user.name,
-      createdAt: session.user.createdAt
+      createdAt: session.user.createdAt,
     };
     return true;
   }

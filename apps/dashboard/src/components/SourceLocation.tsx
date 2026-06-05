@@ -20,7 +20,7 @@ function getAbsolutePath(fileName: string, stack?: string | null): string {
           parsedPath = parsedPath.replace(/^https?:\/[^/]+/, "");
           // Remove query params
           parsedPath = parsedPath.split("?")[0];
-          
+
           if (parsedPath.startsWith("/src/")) {
             return `/Users/artsrunkarapetyan/Documents/projects/bankruptcy-web${parsedPath}`;
           }
@@ -39,7 +39,13 @@ function getAbsolutePath(fileName: string, stack?: string | null): string {
   return `/Users/artsrunkarapetyan/Documents/projects/bankruptcy-web/src/components/Reminders/AddReminder/${fileName}`;
 }
 
-export function SourceLocation({ fileName, line, column, stack, message }: SourceLocationProps) {
+export function SourceLocation({
+  fileName,
+  line,
+  column,
+  stack,
+  message,
+}: SourceLocationProps) {
   const [copied, setCopied] = useState(false);
   if (!fileName) return <span>-</span>;
 
@@ -62,7 +68,10 @@ ${stack ?? "No stack trace available"}`;
 
   return (
     <div className="source-location-container">
-      <div className="source-location-badge" title={`Full path: ${absolutePath}`}>
+      <div
+        className="source-location-badge"
+        title={`Full path: ${absolutePath}`}
+      >
         <span className="source-file">{displayName}</span>
         {line !== undefined && line !== null && (
           <span className="source-pos-badge source-line">
@@ -76,8 +85,8 @@ ${stack ?? "No stack trace available"}`;
             {column}
           </span>
         )}
-        
-        <button 
+
+        <button
           type="button"
           className={`ai-prompt-btn ${copied ? "copied" : ""}`}
           onClick={handleAntigravityClick}

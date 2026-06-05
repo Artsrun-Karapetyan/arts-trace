@@ -7,7 +7,11 @@ type ReplayWindow = {
   postErrorMs: number;
 };
 
-export async function sendEvent(endpoint: string, payload: IngestEventInput, replayWindow: ReplayWindow): Promise<void> {
+export async function sendEvent(
+  endpoint: string,
+  payload: IngestEventInput,
+  replayWindow: ReplayWindow,
+): Promise<void> {
   const replay = payload.replayEvents ?? [];
   const eventPayload = toCompactEventPayload(payload);
 
@@ -20,15 +24,15 @@ export async function sendEvent(endpoint: string, payload: IngestEventInput, rep
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
         },
         body,
         keepalive: true,
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       if (!response.ok) return;
-      const result = await response.json() as { eventId?: string };
+      const result = (await response.json()) as { eventId?: string };
       if (result.eventId) {
         void uploadReplay(
           endpoint,
@@ -37,7 +41,7 @@ export async function sendEvent(endpoint: string, payload: IngestEventInput, rep
           replay,
           Date.parse(payload.timestamp),
           replayWindow.preErrorMs,
-          replayWindow.postErrorMs
+          replayWindow.postErrorMs,
         );
       }
     } finally {
@@ -56,18 +60,20 @@ export async function sendEvent(endpoint: string, payload: IngestEventInput, rep
 
 function toCompactEventPayload(payload: IngestEventInput): IngestEventInput {
   const draft: IngestEventInput = {
-    ...payload
+    ...payload,
   };
 
   delete draft.replayEvents;
-  if (draft.stack && draft.stack.length > 12_000) draft.stack = draft.stack.slice(0, 12_000);
+  if (draft.stack && draft.stack.length > 12_000)
+    draft.stack = draft.stack.slice(0, 12_000);
   if (jsonBytes(draft) <= MAX_EVENT_UPLOAD_BYTES) return draft;
   draft.networkRequests = (draft.networkRequests ?? []).slice(-20);
   draft.breadcrumbs = (draft.breadcrumbs ?? []).slice(-20);
   if (jsonBytes(draft) <= MAX_EVENT_UPLOAD_BYTES) return draft;
   draft.networkRequests = [];
   draft.breadcrumbs = [];
-  if (draft.stack && draft.stack.length > 2_000) draft.stack = draft.stack.slice(0, 2_000);
+  if (draft.stack && draft.stack.length > 2_000)
+    draft.stack = draft.stack.slice(0, 2_000);
   return draft;
 }
 
@@ -78,23 +84,28 @@ async function uploadReplay(
   input: Array<Record<string, unknown>>,
   errorTs: number,
   preErrorMs: number,
-  postErrorMs: number
+  postErrorMs: number,
 ): Promise<void> {
-  const replay = fitReplayForUpload(buildReplayForTransport(input, errorTs, preErrorMs, postErrorMs));
+  const replay = fitReplayForUpload(
+    buildReplayForTransport(input, errorTs, preErrorMs, postErrorMs),
+  );
   if (replay.length < 2) return;
 
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 15_000);
 
   try {
-    await fetch(`${endpoint.replace(/\/+$/, "")}/${encodeURIComponent(eventId)}/replay`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
+    await fetch(
+      `${endpoint.replace(/\/+$/, "")}/${encodeURIComponent(eventId)}/replay`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ apiKey, replayEvents: replay }),
+        signal: controller.signal,
       },
-      body: JSON.stringify({ apiKey, replayEvents: replay }),
-      signal: controller.signal
-    });
+    );
   } catch {
     // no-op: replay failure should not affect the host app or error ingestion
   } finally {

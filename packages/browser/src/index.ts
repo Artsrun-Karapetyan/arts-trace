@@ -2,28 +2,28 @@ import {
   captureClicks,
   captureNavigation,
   patchConsole,
-  snapshotBreadcrumbs
+  snapshotBreadcrumbs,
 } from "./breadcrumbs.ts";
 import {
   DEFAULT_ENDPOINT,
   DEFAULT_REPLAY_POST_ERROR_MS,
-  DEFAULT_REPLAY_PRE_ERROR_MS
+  DEFAULT_REPLAY_PRE_ERROR_MS,
 } from "./constants.ts";
 import { patchFetch, patchXhr, snapshotNetwork } from "./network.ts";
 import { snapshotReplay, startReplayCapture } from "./replay.ts";
 import { getWindowErrorSource, pickBestSource } from "./source.ts";
 import { sendEvent } from "./transport.ts";
-import { getUserContext, setInitialUser } from "./user.ts";
 import type {
   IngestEventInput,
   InitOptions,
   ManualReportAnnotation,
-  OpenReportDialogOptions,
   ManualReportResponse,
-  ReportBugInput
+  OpenReportDialogOptions,
+  ReportBugInput,
 } from "./types.ts";
-export { clearUser, setUser } from "./user.ts";
+import { getUserContext, setInitialUser } from "./user.ts";
 export { mountReportBugButton } from "./report-bug.ts";
+export { clearUser, setUser } from "./user.ts";
 
 let isInitialized = false;
 let replayPreErrorMs = DEFAULT_REPLAY_PRE_ERROR_MS;
@@ -38,8 +38,18 @@ export function init(options: InitOptions): void {
   currentEndpoint = options.endpoint ?? DEFAULT_ENDPOINT;
   currentApiKey = options.apiKey;
   setInitialUser(options.userId);
-  replayPreErrorMs = normalizeDuration(options.replayPreErrorMs, DEFAULT_REPLAY_PRE_ERROR_MS, 2_000, 60_000);
-  replayPostErrorMs = normalizeDuration(options.replayPostErrorMs, DEFAULT_REPLAY_POST_ERROR_MS, 0, 30_000);
+  replayPreErrorMs = normalizeDuration(
+    options.replayPreErrorMs,
+    DEFAULT_REPLAY_PRE_ERROR_MS,
+    2_000,
+    60_000,
+  );
+  replayPostErrorMs = normalizeDuration(
+    options.replayPostErrorMs,
+    DEFAULT_REPLAY_POST_ERROR_MS,
+    0,
+    30_000,
+  );
 
   patchConsole();
   captureNavigation();
@@ -49,7 +59,8 @@ export function init(options: InitOptions): void {
   startReplayCapture(replayPreErrorMs, replayPostErrorMs);
 
   window.addEventListener("error", (event) => {
-    const source = pickBestSource(event.error?.stack) ?? getWindowErrorSource(event);
+    const source =
+      pickBestSource(event.error?.stack) ?? getWindowErrorSource(event);
 
     const payload: IngestEventInput = {
       apiKey: options.apiKey,
@@ -66,10 +77,13 @@ export function init(options: InitOptions): void {
       ...getUserContext(),
       breadcrumbs: snapshotBreadcrumbs(),
       networkRequests: snapshotNetwork(),
-      replayEvents: snapshotReplay()
+      replayEvents: snapshotReplay(),
     };
 
-    void sendEvent(currentEndpoint, payload, { preErrorMs: replayPreErrorMs, postErrorMs: replayPostErrorMs });
+    void sendEvent(currentEndpoint, payload, {
+      preErrorMs: replayPreErrorMs,
+      postErrorMs: replayPostErrorMs,
+    });
   });
 
   window.addEventListener("unhandledrejection", (event) => {
@@ -93,10 +107,13 @@ export function init(options: InitOptions): void {
       ...getUserContext(),
       breadcrumbs: snapshotBreadcrumbs(),
       networkRequests: snapshotNetwork(),
-      replayEvents: snapshotReplay()
+      replayEvents: snapshotReplay(),
     };
 
-    void sendEvent(currentEndpoint, payload, { preErrorMs: replayPreErrorMs, postErrorMs: replayPostErrorMs });
+    void sendEvent(currentEndpoint, payload, {
+      preErrorMs: replayPreErrorMs,
+      postErrorMs: replayPostErrorMs,
+    });
   });
 
   isInitialized = true;
@@ -109,7 +126,7 @@ export async function captureScreenshot(): Promise<string> {
   const html2canvas = await loadHtml2Canvas();
   if (html2canvas) {
     const canvas = await html2canvas(document.body, {
-      backgroundColor: getScreenshotBackgroundColor(),
+      backgroundColor: "#ffffff",
       logging: false,
       useCORS: true,
       allowTaint: false,
@@ -121,8 +138,13 @@ export async function captureScreenshot(): Promise<string> {
       scrollY: -window.scrollY,
       ignoreElements: isArtstraceElement,
       onclone: (documentClone) => {
-        documentClone.querySelectorAll("[class*='artstrace-report'], [class*='artstrace-capture']").forEach((node) => node.remove());
-      }
+        copyAllBackgroundColors(document, documentClone);
+        documentClone
+          .querySelectorAll(
+            "[class*='artstrace-report'], [class*='artstrace-capture']",
+          )
+          .forEach((node) => node.remove());
+      },
     });
     return canvas.toDataURL("image/png");
   }
@@ -139,7 +161,7 @@ export async function captureScreenshot(): Promise<string> {
     throw new Error("Unable to capture screenshot");
   }
 
-  context.fillStyle = getScreenshotBackgroundColor();
+  context.fillStyle = "#ffffff";
   context.fillRect(0, 0, output.width, output.height);
 
   context.drawImage(
@@ -151,7 +173,7 @@ export async function captureScreenshot(): Promise<string> {
     0,
     0,
     output.width,
-    output.height
+    output.height,
   );
 
   try {
@@ -162,7 +184,9 @@ export async function captureScreenshot(): Promise<string> {
   }
 }
 
-export async function reportBug(input: ReportBugInput): Promise<ManualReportResponse> {
+export async function reportBug(
+  input: ReportBugInput,
+): Promise<ManualReportResponse> {
   ensureRuntime();
   if (!currentApiKey) {
     throw new Error("ArtsTrace reportBug requires init(apiKey)");
@@ -171,32 +195,41 @@ export async function reportBug(input: ReportBugInput): Promise<ManualReportResp
     throw new Error("ArtsTrace reportBug requires a title");
   }
 
-  const response = await fetch(`${getApiRoot(currentEndpoint)}/manual-reports`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
+  const response = await fetch(
+    `${getApiRoot(currentEndpoint)}/manual-reports`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        projectKey: currentApiKey,
+        title: input.title,
+        description: input.description,
+        screenshotData: input.screenshotData,
+        annotations: input.annotations,
+        url: input.url ?? window.location.href,
+        userAgent: input.userAgent ?? navigator.userAgent,
+        createdByUserId: input.createdByUserId,
+      }),
     },
-    body: JSON.stringify({
-      projectKey: currentApiKey,
-      title: input.title,
-      description: input.description,
-      screenshotData: input.screenshotData,
-      annotations: input.annotations,
-      url: input.url ?? window.location.href,
-      userAgent: input.userAgent ?? navigator.userAgent,
-      createdByUserId: input.createdByUserId
-    })
-  });
+  );
 
   if (!response.ok) {
     const message = await response.text().catch(() => "");
-    throw new Error(message ? `Failed to submit bug report: ${message}` : "Failed to submit bug report");
+    throw new Error(
+      message
+        ? `Failed to submit bug report: ${message}`
+        : "Failed to submit bug report",
+    );
   }
 
-  return await response.json() as ManualReportResponse;
+  return (await response.json()) as ManualReportResponse;
 }
 
-export function openReportDialog(options: OpenReportDialogOptions = {}): { close: () => void } {
+export function openReportDialog(options: OpenReportDialogOptions = {}): {
+  close: () => void;
+} {
   ensureRuntime();
   ensureReportStyles();
 
@@ -249,15 +282,33 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
     </div>
   `;
 
-  const titleInput = modal.querySelector('input[type="text"]') as HTMLInputElement;
-  const descriptionInput = modal.querySelector('textarea') as HTMLTextAreaElement;
-  const closeButton = modal.querySelector(".artstrace-report-close") as HTMLButtonElement;
-  const cancelButton = modal.querySelector(".artstrace-report-cancel") as HTMLButtonElement;
-  const captureButton = modal.querySelector(".artstrace-report-capture") as HTMLButtonElement;
-  const sendButton = modal.querySelector(".artstrace-report-primary") as HTMLButtonElement;
-  const toolbar = modal.querySelector(".artstrace-report-toolbar") as HTMLDivElement;
-  const preview = modal.querySelector(".artstrace-report-screenshot-preview") as HTMLDivElement;
-  const annotationCount = modal.querySelector(".artstrace-report-annotation-count") as HTMLSpanElement;
+  const titleInput = modal.querySelector(
+    'input[type="text"]',
+  ) as HTMLInputElement;
+  const descriptionInput = modal.querySelector(
+    "textarea",
+  ) as HTMLTextAreaElement;
+  const closeButton = modal.querySelector(
+    ".artstrace-report-close",
+  ) as HTMLButtonElement;
+  const cancelButton = modal.querySelector(
+    ".artstrace-report-cancel",
+  ) as HTMLButtonElement;
+  const captureButton = modal.querySelector(
+    ".artstrace-report-capture",
+  ) as HTMLButtonElement;
+  const sendButton = modal.querySelector(
+    ".artstrace-report-primary",
+  ) as HTMLButtonElement;
+  const toolbar = modal.querySelector(
+    ".artstrace-report-toolbar",
+  ) as HTMLDivElement;
+  const preview = modal.querySelector(
+    ".artstrace-report-screenshot-preview",
+  ) as HTMLDivElement;
+  const annotationCount = modal.querySelector(
+    ".artstrace-report-annotation-count",
+  ) as HTMLSpanElement;
 
   let screenshotData = options.defaultScreenshotData ?? "";
   let annotations = options.defaultAnnotations ?? [];
@@ -280,7 +331,8 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
       screenshotData = await captureScreenshot();
       updatePreview();
     } catch (error) {
-      preview.textContent = error instanceof Error ? error.message : "Could not capture screenshot";
+      preview.textContent =
+        error instanceof Error ? error.message : "Could not capture screenshot";
       preview.classList.add("artstrace-report-preview-error");
     } finally {
       document.documentElement.classList.remove("artstrace-capturing-page");
@@ -297,7 +349,7 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
       annotations,
       url: window.location.href,
       userAgent: navigator.userAgent,
-      createdByUserId: getUserContext().userId
+      createdByUserId: getUserContext().userId,
     } satisfies ReportBugInput;
 
     if (!report.title) {
@@ -317,7 +369,8 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
       }
       close();
     } catch (error) {
-      preview.textContent = error instanceof Error ? error.message : "Failed to send report";
+      preview.textContent =
+        error instanceof Error ? error.message : "Failed to send report";
       preview.classList.add("artstrace-report-preview-error");
     } finally {
       sendButton.disabled = false;
@@ -365,7 +418,10 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
   function setTool(tool: ManualReportAnnotation["kind"]) {
     currentTool = tool;
     modal.querySelectorAll(".artstrace-report-tool").forEach((button) => {
-      button.classList.toggle("is-active", button.getAttribute("data-tool") === tool);
+      button.classList.toggle(
+        "is-active",
+        button.getAttribute("data-tool") === tool,
+      );
     });
   }
 
@@ -383,8 +439,14 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
     const rect = getStageRect();
     if (!rect) return null;
     return {
-      x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
-      y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100))
+      x: Math.max(
+        0,
+        Math.min(100, ((event.clientX - rect.left) / rect.width) * 100),
+      ),
+      y: Math.max(
+        0,
+        Math.min(100, ((event.clientY - rect.top) / rect.height) * 100),
+      ),
     };
   }
 
@@ -426,7 +488,10 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
       if (currentTool === "note") {
         const text = window.prompt("Note text")?.trim();
         if (!text) return;
-        annotations = [...annotations, { kind: "note", x: point.x, y: point.y, text, color: "#5eead4" }];
+        annotations = [
+          ...annotations,
+          { kind: "note", x: point.x, y: point.y, text, color: "#5eead4" },
+        ];
         renderAnnotations();
         updateAnnotationCount();
         return;
@@ -441,8 +506,8 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
             y: Math.max(0, point.y - 6),
             width: 12,
             height: 12,
-            color: "#fbbf24"
-          }
+            color: "#fbbf24",
+          },
         ];
         renderAnnotations();
         updateAnnotationCount();
@@ -460,7 +525,8 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
       if (!point) return;
       renderAnnotations();
       const draft = document.createElement("div");
-      draft.className = "artstrace-annotation artstrace-annotation-highlight artstrace-annotation-draft";
+      draft.className =
+        "artstrace-annotation artstrace-annotation-highlight artstrace-annotation-draft";
       draft.style.left = `${Math.min(dragStart.x, point.x)}%`;
       draft.style.top = `${Math.min(dragStart.y, point.y)}%`;
       draft.style.width = `${Math.max(2, Math.abs(point.x - dragStart.x))}%`;
@@ -487,8 +553,8 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
           y: top,
           width,
           height,
-          color: "#f59e0b"
-        }
+          color: "#f59e0b",
+        },
       ];
       dragStart = null;
       renderAnnotations();
@@ -516,7 +582,9 @@ export function openReportDialog(options: OpenReportDialogOptions = {}): { close
   captureButton.addEventListener("click", () => void handleCapture());
   sendButton.addEventListener("click", () => void handleSubmit());
   toolbar.addEventListener("click", (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(".artstrace-report-tool");
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+      ".artstrace-report-tool",
+    );
     if (!button) return;
     const tool = button.getAttribute("data-tool");
     if (tool === "clear") {
@@ -566,7 +634,7 @@ function normalizeDuration(
   value: number | undefined,
   fallback: number,
   min: number,
-  max: number
+  max: number,
 ): number {
   if (typeof value !== "number" || Number.isNaN(value)) return fallback;
   return Math.max(min, Math.min(max, Math.floor(value)));
@@ -580,7 +648,9 @@ function ensureRuntime(): void {
 
 function getApiRoot(endpoint: string): string {
   const normalized = endpoint.replace(/\/+$/, "");
-  return normalized.endsWith("/events") ? normalized.slice(0, -"/events".length) : normalized;
+  return normalized.endsWith("/events")
+    ? normalized.slice(0, -"/events".length)
+    : normalized;
 }
 
 function waitForNextPaint(): Promise<void> {
@@ -590,22 +660,33 @@ function waitForNextPaint(): Promise<void> {
 }
 
 function isArtstraceElement(element: Element): boolean {
-  return Array.from(element.classList).some((className) => className.startsWith("artstrace-report")
-    || className.startsWith("artstrace-capture"));
+  return Array.from(element.classList).some(
+    (className) =>
+      className.startsWith("artstrace-report") ||
+      className.startsWith("artstrace-capture"),
+  );
 }
 
-function getScreenshotBackgroundColor(): string {
-  const bodyBackground = window.getComputedStyle(document.body).backgroundColor;
-  if (bodyBackground && bodyBackground !== "rgba(0, 0, 0, 0)" && bodyBackground !== "transparent") {
-    return bodyBackground;
-  }
+function copyAllBackgroundColors(
+  originalDoc: Document,
+  cloneDoc: Document,
+): void {
+  const origAll = originalDoc.querySelectorAll("*");
+  const cloneAll = cloneDoc.querySelectorAll("*");
+  const len = Math.min(origAll.length, cloneAll.length);
 
-  const rootBackground = window.getComputedStyle(document.documentElement).backgroundColor;
-  if (rootBackground && rootBackground !== "rgba(0, 0, 0, 0)" && rootBackground !== "transparent") {
-    return rootBackground;
-  }
+  for (let i = 0; i < len; i++) {
+    const orig = origAll[i];
+    const clone = cloneAll[i];
+    if (!(orig instanceof HTMLElement) || !(clone instanceof HTMLElement))
+      continue;
+    if (isArtstraceElement(orig)) continue;
 
-  return "#ffffff";
+    const bg = window.getComputedStyle(orig).backgroundColor;
+    if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") {
+      clone.style.backgroundColor = bg;
+    }
+  }
 }
 
 type ScreenshotRegion = {
@@ -624,7 +705,9 @@ function selectScreenshotRegion(): Promise<ScreenshotRegion> {
       <div class="artstrace-capture-box"></div>
     `;
 
-    const box = overlay.querySelector(".artstrace-capture-box") as HTMLDivElement;
+    const box = overlay.querySelector(
+      ".artstrace-capture-box",
+    ) as HTMLDivElement;
     let start: { x: number; y: number } | null = null;
     let current: { x: number; y: number } | null = null;
 
@@ -692,19 +775,33 @@ function selectScreenshotRegion(): Promise<ScreenshotRegion> {
   });
 }
 
-async function renderViewportCanvas(safeMode = false): Promise<HTMLCanvasElement> {
+async function renderViewportCanvas(
+  safeMode = false,
+): Promise<HTMLCanvasElement> {
   const width = Math.max(1, window.innerWidth);
   const height = Math.max(1, window.innerHeight);
   const source = document.documentElement.cloneNode(true) as HTMLElement;
 
-  source.querySelectorAll("script, .artstrace-report-backdrop, .artstrace-report-fab, .artstrace-capture-select").forEach((node) => node.remove());
+  source
+    .querySelectorAll(
+      "script, .artstrace-report-backdrop, .artstrace-report-fab, .artstrace-capture-select",
+    )
+    .forEach((node) => node.remove());
   if (safeMode) {
     sanitizeScreenshotClone(source);
   }
   source.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
 
-  const docWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, width);
-  const docHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, height);
+  const docWidth = Math.max(
+    document.documentElement.scrollWidth,
+    document.body.scrollWidth,
+    width,
+  );
+  const docHeight = Math.max(
+    document.documentElement.scrollHeight,
+    document.body.scrollHeight,
+    height,
+  );
   const serialized = new XMLSerializer().serializeToString(source);
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
@@ -715,11 +812,14 @@ async function renderViewportCanvas(safeMode = false): Promise<HTMLCanvasElement
   `;
 
   const image = new Image();
-  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  const url = URL.createObjectURL(
+    new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
+  );
   try {
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
-      image.onerror = () => reject(new Error("Could not render this page screenshot"));
+      image.onerror = () =>
+        reject(new Error("Could not render this page screenshot"));
       image.src = url;
     });
 
@@ -731,7 +831,7 @@ async function renderViewportCanvas(safeMode = false): Promise<HTMLCanvasElement
       throw new Error("Unable to capture screenshot");
     }
 
-    context.fillStyle = getScreenshotBackgroundColor();
+    context.fillStyle = "#ffffff";
     context.fillRect(0, 0, width, height);
 
     context.drawImage(image, 0, 0, width, height);
@@ -756,17 +856,24 @@ function loadHtml2Canvas(): Promise<Html2Canvas | null> {
   html2CanvasPromise ??= import("html2canvas")
     .then((mod) => mod.default)
     .catch(() => {
-      const candidate = (window as typeof window & { html2canvas?: unknown }).html2canvas;
-      return typeof candidate === "function" ? candidate as Html2Canvas : null;
+      const candidate = (window as typeof window & { html2canvas?: unknown })
+        .html2canvas;
+      return typeof candidate === "function"
+        ? (candidate as Html2Canvas)
+        : null;
     });
 
   return html2CanvasPromise;
 }
 
 function sanitizeScreenshotClone(root: HTMLElement): void {
-  root.querySelectorAll('link[rel="stylesheet"], link[rel="preload"], link[rel="modulepreload"], iframe, object, embed').forEach((node) => {
-    node.remove();
-  });
+  root
+    .querySelectorAll(
+      'link[rel="stylesheet"], link[rel="preload"], link[rel="modulepreload"], iframe, object, embed',
+    )
+    .forEach((node) => {
+      node.remove();
+    });
 
   root.querySelectorAll("style").forEach((node) => {
     node.textContent = (node.textContent ?? "")
@@ -786,7 +893,10 @@ function sanitizeScreenshotClone(root: HTMLElement): void {
 
   root.querySelectorAll("canvas").forEach((node) => {
     const placeholder = document.createElement("div");
-    placeholder.setAttribute("style", "width:100%;height:100%;background:rgba(148,163,184,0.12);");
+    placeholder.setAttribute(
+      "style",
+      "width:100%;height:100%;background:rgba(148,163,184,0.12);",
+    );
     node.replaceWith(placeholder);
   });
 
@@ -808,14 +918,23 @@ function createFallbackScreenshot(region: ScreenshotRegion): HTMLCanvasElement {
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.strokeStyle = "#94a3b8";
   context.setLineDash([8, 8]);
-  context.strokeRect(12, 12, Math.max(1, canvas.width - 24), Math.max(1, canvas.height - 24));
+  context.strokeRect(
+    12,
+    12,
+    Math.max(1, canvas.width - 24),
+    Math.max(1, canvas.height - 24),
+  );
   context.setLineDash([]);
   context.fillStyle = "#334155";
   context.font = "14px sans-serif";
   context.fillText("Selected page area", 24, 38);
   context.fillStyle = "#64748b";
   context.font = "12px sans-serif";
-  context.fillText("Browser blocked exact canvas export for this page.", 24, 60);
+  context.fillText(
+    "Browser blocked exact canvas export for this page.",
+    24,
+    60,
+  );
   return canvas;
 }
 

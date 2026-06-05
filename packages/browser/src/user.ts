@@ -16,11 +16,14 @@ export function setInitialUser(userId?: string): void {
   }
 }
 
-export function getUserContext(): Pick<IngestEventInput, "userId" | "userName" | "userRole"> {
+export function getUserContext(): Pick<
+  IngestEventInput,
+  "userId" | "userName" | "userRole"
+> {
   return {
     userId: currentUser?.id ?? getOrCreateSessionId(),
     userName: currentUser?.name ?? currentUser?.fullName,
-    userRole: currentUser?.role
+    userRole: currentUser?.role,
   };
 }
 
@@ -28,11 +31,11 @@ function getOrCreateSessionId(): string {
   try {
     let id = localStorage.getItem("artstrace_session_id");
     if (!id) {
-      id = "anon_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      id = `anon_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
       localStorage.setItem("artstrace_session_id", id);
     }
     return id;
   } catch {
-    return "anon_temp_" + Math.random().toString(36).slice(2);
+    return `anon_temp_${Math.random().toString(36).slice(2)}`;
   }
 }

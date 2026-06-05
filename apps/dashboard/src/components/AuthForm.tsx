@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { FormEvent, useState } from "react";
-import { useAuth } from "../auth/AuthProvider";
-import { acceptInvite } from "../lib";
+
+import { useAuth } from "@/auth/AuthProvider";
+import { acceptInvite } from "@/lib";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -10,7 +11,9 @@ type AuthFormProps = {
 export function AuthForm({ mode }: AuthFormProps) {
   const navigate = useNavigate();
   const auth = useAuth();
-  const [email, setEmail] = useState(() => localStorage.getItem("artstrace_pending_invite_email") ?? "");
+  const [email, setEmail] = useState(
+    () => localStorage.getItem("artstrace_pending_invite_email") ?? "",
+  );
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,7 +35,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         localStorage.removeItem("artstrace_pending_invite");
         localStorage.removeItem("artstrace_pending_invite_email");
         const accepted = await acceptInvite(pendingInvite);
-        await navigate({ to: "/projects/$id/issues", params: { id: accepted.projectId } });
+        await navigate({
+          to: "/projects/$id/issues",
+          params: { id: accepted.projectId },
+        });
         return;
       }
       await navigate({ to: "/projects" });
@@ -46,8 +52,14 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <div className="auth-card">
       <div className="auth-hero">
-        <div className="section-title">{mode === "login" ? "Welcome back" : "Create account"}</div>
-        <h1 className="auth-title">{mode === "login" ? "Sign in to ArtsTrace" : "Register your workspace"}</h1>
+        <div className="section-title">
+          {mode === "login" ? "Welcome back" : "Create account"}
+        </div>
+        <h1 className="auth-title">
+          {mode === "login"
+            ? "Sign in to ArtsTrace"
+            : "Register your workspace"}
+        </h1>
         <p className="small-note auth-copy">
           {mode === "login"
             ? "Use your email and password to open the dashboard."
@@ -89,7 +101,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           <input
             className="input"
             type="password"
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            autoComplete={
+              mode === "login" ? "current-password" : "new-password"
+            }
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="At least 8 characters"
@@ -101,12 +115,20 @@ export function AuthForm({ mode }: AuthFormProps) {
         {error ? <p className="small-note auth-error">{error}</p> : null}
 
         <button className="btn auth-submit" type="submit" disabled={busy}>
-          {busy ? (mode === "login" ? "Signing in..." : "Creating account...") : mode === "login" ? "Login" : "Register"}
+          {busy
+            ? mode === "login"
+              ? "Signing in..."
+              : "Creating account..."
+            : mode === "login"
+              ? "Login"
+              : "Register"}
         </button>
 
         <p className="auth-switch">
           {mode === "login" ? "No account yet?" : "Already have an account?"}{" "}
-          <Link to={mode === "login" ? "/register" : "/login"}>{mode === "login" ? "Register" : "Login"}</Link>
+          <Link to={mode === "login" ? "/register" : "/login"}>
+            {mode === "login" ? "Register" : "Login"}
+          </Link>
         </p>
       </form>
     </div>

@@ -26,7 +26,7 @@ export function patchConsole(): void {
       pushBreadcrumb({
         type: "console.error",
         message: message || "console.error",
-        data: { argsCount: args.length }
+        data: { argsCount: args.length },
       });
     } catch {
       // no-op
@@ -39,7 +39,7 @@ export function captureNavigation(): void {
   const push = () => {
     pushBreadcrumb({
       type: "navigation",
-      message: window.location.href
+      message: window.location.href,
     });
   };
 
@@ -57,17 +57,20 @@ export function captureClicks(): void {
       const tag = target.tagName?.toLowerCase() ?? "unknown";
       const text = (target.textContent ?? "").trim().slice(0, 80);
       const id = target.id ? `#${target.id}` : "";
-      const cls = target.className && typeof target.className === "string" ? `.${target.className.split(" ").slice(0, 2).join(".")}` : "";
+      const cls =
+        target.className && typeof target.className === "string"
+          ? `.${target.className.split(" ").slice(0, 2).join(".")}`
+          : "";
 
       pushBreadcrumb({
         type: "click",
         message: `${tag}${id}${cls}`,
         data: {
-          text
-        }
+          text,
+        },
       });
     },
-    { capture: true }
+    { capture: true },
   );
 }
 

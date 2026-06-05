@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FormEvent, useEffect, useState } from "react";
-import { useAuth } from "../../auth/AuthProvider";
+
+import { useAuth } from "@/auth/AuthProvider";
 
 export const Route = createFileRoute("/_authenticated/profile")({
-  component: ProfilePage
+  component: ProfilePage,
 });
 
 function ProfilePage() {
@@ -38,17 +39,29 @@ function ProfilePage() {
       <div className="page-head">
         <div>
           <h2>Profile</h2>
-          <p className="small-note">Update your display name for comments and team assignment.</p>
+          <p className="small-note">
+            Update your display name for comments and team assignment.
+          </p>
         </div>
       </div>
 
       <div className="panel profile-panel">
         <aside className="profile-aside">
-          <div className="profile-avatar">{(auth.user?.name?.trim()?.[0] ?? auth.user?.email?.[0] ?? "U").toUpperCase()}</div>
+          <div className="profile-avatar">
+            {(
+              auth.user?.name?.trim()?.[0] ??
+              auth.user?.email?.[0] ??
+              "U"
+            ).toUpperCase()}
+          </div>
           <div>
             <div className="section-title">Signed in as</div>
-            <div className="profile-aside-name">{auth.user?.name?.trim() || "Unnamed user"}</div>
-            <div className="mono profile-aside-email">{auth.user?.email ?? "-"}</div>
+            <div className="profile-aside-name">
+              {auth.user?.name?.trim() || "Unnamed user"}
+            </div>
+            <div className="mono profile-aside-email">
+              {auth.user?.email ?? "-"}
+            </div>
           </div>
           <div className="profile-aside-pill">Display name</div>
         </aside>
@@ -76,11 +89,17 @@ function ProfilePage() {
 
           <div className="profile-readonly">
             <div className="profile-readonly-label">Email</div>
-            <div className="profile-readonly-value">{auth.user?.email ?? "-"}</div>
+            <div className="profile-readonly-value">
+              {auth.user?.email ?? "-"}
+            </div>
           </div>
 
           {error ? <p className="small-note auth-error">{error}</p> : null}
-          {saved ? <p className="small-note" style={{ color: "#6ee7b7" }}>Profile saved.</p> : null}
+          {saved ? (
+            <p className="small-note" style={{ color: "#6ee7b7" }}>
+              Profile saved.
+            </p>
+          ) : null}
 
           <div className="confirm-modal-actions profile-actions">
             <button className="btn" type="submit" disabled={saving}>

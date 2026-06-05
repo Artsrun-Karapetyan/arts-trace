@@ -1,17 +1,18 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { AuthProvider, useAuth } from "./auth/AuthProvider";
-import { routeTree } from "./routeTree.gen";
-import "rrweb-player/dist/style.css";
 import "./styles.css";
 import "./i18n";
+
+import { createRouter, RouterProvider } from "@tanstack/react-router";
+import React from "react";
+import ReactDOM from "react-dom/client";
+
+import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({
   routeTree,
   context: {
-    auth: undefined!
-  }
+    auth: undefined!,
+  },
 });
 
 declare module "@tanstack/react-router" {
@@ -25,7 +26,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <AuthProvider>
       <AppRouter />
     </AuthProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
 
 function AppRouter() {

@@ -14,5 +14,8 @@ declare module "html2canvas" {
     onclone?: (documentClone: Document, element: HTMLElement) => void;
   };
 
-  export default function html2canvas(element: HTMLElement, options?: Partial<Options>): Promise<HTMLCanvasElement>;
+  export default function html2canvas(
+    element: HTMLElement,
+    options?: Partial<Options>,
+  ): Promise<HTMLCanvasElement>;
 }

@@ -98,4 +98,6 @@ export type UserContext = {
 };
 
 export type Breadcrumb = NonNullable<IngestEventInput["breadcrumbs"]>[number];
-export type NetworkRequest = NonNullable<IngestEventInput["networkRequests"]>[number];
+export type NetworkRequest = NonNullable<
+  IngestEventInput["networkRequests"]
+>[number];

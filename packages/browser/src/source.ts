@@ -11,7 +11,7 @@ export function getWindowErrorSource(event: ErrorEvent): SourceLocation | null {
     filePath: event.filename,
     fileName: getFileName(event.filename),
     line: event.lineno,
-    column: event.colno
+    column: event.colno,
   };
 }
 
@@ -22,7 +22,10 @@ export function pickBestSource(stack?: string): SourceLocation | null {
     .split("\n")
     .map((line) => line.trim())
     .map(parseStackFrame)
-    .filter((x): x is { filePath: string; line: number; column: number } => x !== null);
+    .filter(
+      (x): x is { filePath: string; line: number; column: number } =>
+        x !== null,
+    );
 
   if (frames.length === 0) return null;
   const preferred = frames.find((frame) => isPreferredFrame(frame.filePath));
@@ -32,7 +35,7 @@ export function pickBestSource(stack?: string): SourceLocation | null {
     filePath: selected.filePath,
     fileName: getFileName(selected.filePath),
     line: selected.line,
-    column: selected.column
+    column: selected.column,
   };
 }
 
@@ -40,7 +43,9 @@ function getFileName(path: string): string {
   return path.split("/").pop() ?? path;
 }
 
-function parseStackFrame(line: string): { filePath: string; line: number; column: number } | null {
+function parseStackFrame(
+  line: string,
+): { filePath: string; line: number; column: number } | null {
   const match = line.match(/((?:https?:\/\/|\/)[^)\s]+):(\d+):(\d+)/);
   if (!match) return null;
 
@@ -51,7 +56,7 @@ function parseStackFrame(line: string): { filePath: string; line: number; column
   return {
     filePath: match[1],
     line: lineNumber,
-    column: columnNumber
+    column: columnNumber,
   };
 }
 

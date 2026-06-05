@@ -1,6 +1,8 @@
 import type { MountReportBugButtonOptions } from "./types.ts";
 
-export function mountReportBugButton(options: MountReportBugButtonOptions = {}): { destroy: () => void } {
+export function mountReportBugButton(
+  options: MountReportBugButtonOptions = {},
+): { destroy: () => void } {
   ensureRuntime();
 
   const target = resolveTarget(options.target);
@@ -19,7 +21,7 @@ export function mountReportBugButton(options: MountReportBugButtonOptions = {}):
         defaultScreenshotData: options.defaultScreenshotData,
         defaultAnnotations: options.defaultAnnotations,
         onSubmit: options.onSubmit,
-        onClose: options.onClose
+        onClose: options.onClose,
       });
     });
   };
@@ -34,7 +36,7 @@ export function mountReportBugButton(options: MountReportBugButtonOptions = {}):
   return {
     destroy() {
       button.remove();
-    }
+    },
   };
 }
 

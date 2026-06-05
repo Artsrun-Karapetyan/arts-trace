@@ -15,8 +15,15 @@ export function patchFetch(): void {
     const req = args[0];
     const init = args[1];
     const method = (init?.method ?? "GET").toUpperCase();
-    const url = typeof req === "string" ? req : req instanceof URL ? req.toString() : req.url;
-    const requestHeaders = headersToRecord(init?.headers ?? (req instanceof Request ? req.headers : undefined));
+    const url =
+      typeof req === "string"
+        ? req
+        : req instanceof URL
+          ? req.toString()
+          : req.url;
+    const requestHeaders = headersToRecord(
+      init?.headers ?? (req instanceof Request ? req.headers : undefined),
+    );
     const requestBody = normalizeBody(init?.body);
 
     try {
@@ -30,7 +37,7 @@ export function patchFetch(): void {
         requestBody,
         responseHeaders: headersToRecord(res.headers),
         responseBody,
-        duration: Date.now() - started
+        duration: Date.now() - started,
       });
       return res;
     } catch (error) {
@@ -40,7 +47,7 @@ export function patchFetch(): void {
         requestHeaders,
         requestBody,
         error: toErrorMessage(error),
-        duration: Date.now() - started
+        duration: Date.now() - started,
       });
       throw error;
     }
@@ -52,15 +59,44 @@ export function patchXhr(): void {
   const send = XMLHttpRequest.prototype.send;
   const setRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
 
-  XMLHttpRequest.prototype.open = function (method: string, url: string | URL, ...rest: unknown[]) {
-    (this as XMLHttpRequest & { __at_method?: string; __at_url?: string; __at_request_headers?: Record<string, string> }).__at_method = method;
-    (this as XMLHttpRequest & { __at_method?: string; __at_url?: string; __at_request_headers?: Record<string, string> }).__at_url = String(url);
-    (this as XMLHttpRequest & { __at_method?: string; __at_url?: string; __at_request_headers?: Record<string, string> }).__at_request_headers = {};
-    return open.apply(this, [method, url, ...rest] as unknown as Parameters<XMLHttpRequest["open"]>);
+  XMLHttpRequest.prototype.open = function (
+    method: string,
+    url: string | URL,
+    ...rest: unknown[]
+  ) {
+    (
+      this as XMLHttpRequest & {
+        __at_method?: string;
+        __at_url?: string;
+        __at_request_headers?: Record<string, string>;
+      }
+    ).__at_method = method;
+    (
+      this as XMLHttpRequest & {
+        __at_method?: string;
+        __at_url?: string;
+        __at_request_headers?: Record<string, string>;
+      }
+    ).__at_url = String(url);
+    (
+      this as XMLHttpRequest & {
+        __at_method?: string;
+        __at_url?: string;
+        __at_request_headers?: Record<string, string>;
+      }
+    ).__at_request_headers = {};
+    return open.apply(this, [method, url, ...rest] as unknown as Parameters<
+      XMLHttpRequest["open"]
+    >);
   };
 
-  XMLHttpRequest.prototype.setRequestHeader = function (name: string, value: string) {
-    const self = this as XMLHttpRequest & { __at_request_headers?: Record<string, string> };
+  XMLHttpRequest.prototype.setRequestHeader = function (
+    name: string,
+    value: string,
+  ) {
+    const self = this as XMLHttpRequest & {
+      __at_request_headers?: Record<string, string>;
+    };
     if (!self.__at_request_headers) self.__at_request_headers = {};
     self.__at_request_headers[name.toLowerCase()] = clamp(String(value), 300);
     return setRequestHeader.call(this, name, value);
@@ -68,10 +104,17 @@ export function patchXhr(): void {
 
   XMLHttpRequest.prototype.send = function (...args: unknown[]) {
     const started = Date.now();
-    const self = this as XMLHttpRequest & { __at_method?: string; __at_url?: string; __at_request_headers?: Record<string, string> };
+    const self = this as XMLHttpRequest & {
+      __at_method?: string;
+      __at_url?: string;
+      __at_request_headers?: Record<string, string>;
+    };
 
     const done = () => {
-      const responseBody = typeof self.responseText === "string" ? clamp(self.responseText, 2_000) : undefined;
+      const responseBody =
+        typeof self.responseText === "string"
+          ? clamp(self.responseText, 2_000)
+          : undefined;
       pushNetwork({
         method: (self.__at_method ?? "GET").toUpperCase(),
         url: self.__at_url ?? "unknown",
@@ -81,7 +124,7 @@ export function patchXhr(): void {
         responseHeaders: headersFromRaw(self.getAllResponseHeaders()),
         responseBody,
         error: self.status === 0 ? "network_error" : undefined,
-        duration: Date.now() - started
+        duration: Date.now() - started,
       });
       self.removeEventListener("loadend", done);
     };
@@ -100,7 +143,9 @@ function clamp(value: string, max: number): string {
   return value.length > max ? `${value.slice(0, max)}...[truncated]` : value;
 }
 
-function headersToRecord(input?: HeadersInit): Record<string, string> | undefined {
+function headersToRecord(
+  input?: HeadersInit,
+): Record<string, string> | undefined {
   if (!input) return undefined;
   try {
     const headers = new Headers(input);
@@ -137,7 +182,8 @@ function normalizeBody(body: unknown): string | undefined {
   if (typeof body === "string") return clamp(body, 2_000);
   if (body instanceof URLSearchParams) return clamp(body.toString(), 2_000);
   if (body instanceof FormData) return "[FormData]";
-  if (body instanceof Blob) return `[Blob ${body.type || "unknown"} ${body.size}b]`;
+  if (body instanceof Blob)
+    return `[Blob ${body.type || "unknown"} ${body.size}b]`;
   if (body instanceof ArrayBuffer) return `[ArrayBuffer ${body.byteLength}b]`;
   if (ArrayBuffer.isView(body)) return `[TypedArray ${body.byteLength}b]`;
   return `[${Object.prototype.toString.call(body)}]`;

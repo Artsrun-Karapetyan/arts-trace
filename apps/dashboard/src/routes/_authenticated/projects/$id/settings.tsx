@@ -1,11 +1,12 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ProjectSetupCard } from "../../../components/ProjectSetupCard";
-import { deleteProject, fetchProject, rotateProjectKey } from "../../../lib";
+
+import { ProjectSetupCard } from "@/components/ProjectSetupCard";
+import { deleteProject, fetchProject, rotateProjectKey } from "@/lib";
 
 export const Route = createFileRoute("/_authenticated/projects/$id/settings")({
   loader: ({ params }) => fetchProject(params.id),
-  component: ProjectSettingsPage
+  component: ProjectSettingsPage,
 });
 
 function ProjectSettingsPage() {
@@ -60,10 +61,18 @@ function ProjectSettingsPage() {
       <div className="page-head">
         <h2>Project Settings</h2>
         <div className="project-actions">
-          <Link className="btn btn-ghost" to="/projects/$id/issues" params={{ id: project.id }}>
+          <Link
+            className="btn btn-ghost"
+            to="/projects/$id/issues"
+            params={{ id: project.id }}
+          >
             Issues
           </Link>
-          <Link className="btn btn-ghost" to="/projects/$id/events" params={{ id: project.id }}>
+          <Link
+            className="btn btn-ghost"
+            to="/projects/$id/events"
+            params={{ id: project.id }}
+          >
             Events
           </Link>
         </div>
@@ -72,16 +81,27 @@ function ProjectSettingsPage() {
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="section-title">Project Identity</div>
         <div className="meta-grid">
-          <p><strong>Name:</strong> {project.name}</p>
-          <p><strong>Project ID:</strong> <code className="mono">{project.id}</code></p>
+          <p>
+            <strong>Name:</strong> {project.name}
+          </p>
+          <p>
+            <strong>Project ID:</strong>{" "}
+            <code className="mono">{project.id}</code>
+          </p>
           <p>
             <strong>Access:</strong>{" "}
-            <span className={`project-role-pill project-role-${(project.accessRole ?? "MEMBER").toLowerCase()}`}>
+            <span
+              className={`project-role-pill project-role-${(project.accessRole ?? "MEMBER").toLowerCase()}`}
+            >
               {project.accessRole ?? "Member"}
             </span>
           </p>
         </div>
-        {error ? <p className="small-note" style={{ color: "#f87171" }}>{error}</p> : null}
+        {error ? (
+          <p className="small-note" style={{ color: "#f87171" }}>
+            {error}
+          </p>
+        ) : null}
       </div>
 
       <ProjectSetupCard
@@ -97,8 +117,14 @@ function ProjectSettingsPage() {
       {canManage ? (
         <div className="card card-danger" style={{ marginBottom: 14 }}>
           <div className="section-title">⚠ Danger Zone</div>
-          <p className="small-note" style={{ marginTop: 0, marginBottom: 12 }}>Deleting project removes all issues and events permanently.</p>
-          <button className="btn btn-danger" disabled={busy !== null} onClick={() => setDeleteOpen(true)}>
+          <p className="small-note" style={{ marginTop: 0, marginBottom: 12 }}>
+            Deleting project removes all issues and events permanently.
+          </p>
+          <button
+            className="btn btn-danger"
+            disabled={busy !== null}
+            onClick={() => setDeleteOpen(true)}
+          >
             {busy === "delete" ? "Deleting..." : "Delete Project"}
           </button>
         </div>
@@ -126,13 +152,18 @@ function ProjectSettingsPage() {
                 <div className="section-title">Confirm deletion</div>
                 <h3 className="modal-title">Delete {project.name}?</h3>
               </div>
-              <button className="icon-btn modal-close" type="button" onClick={() => busy !== "delete" && setDeleteOpen(false)}>
+              <button
+                className="icon-btn modal-close"
+                type="button"
+                onClick={() => busy !== "delete" && setDeleteOpen(false)}
+              >
                 ×
               </button>
             </div>
 
             <p className="modal-copy">
-              This removes the project, all issues, events, replays, breadcrumbs, and network data permanently.
+              This removes the project, all issues, events, replays,
+              breadcrumbs, and network data permanently.
             </p>
 
             <div className="modal-summary">
@@ -147,10 +178,20 @@ function ProjectSettingsPage() {
             </div>
 
             <div className="modal-actions">
-              <button className="btn btn-ghost" type="button" disabled={busy === "delete"} onClick={() => setDeleteOpen(false)}>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                disabled={busy === "delete"}
+                onClick={() => setDeleteOpen(false)}
+              >
                 Cancel
               </button>
-              <button className="btn btn-danger" type="button" disabled={busy === "delete"} onClick={onDelete}>
+              <button
+                className="btn btn-danger"
+                type="button"
+                disabled={busy === "delete"}
+                onClick={onDelete}
+              >
                 {busy === "delete" ? "Deleting..." : "Delete project"}
               </button>
             </div>

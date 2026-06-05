@@ -5,7 +5,7 @@ const resources = {
   en: {
     translation: {
       nav: {
-        projects: "Projects"
+        projects: "Projects",
       },
       common: {
         message: "Message",
@@ -17,13 +17,13 @@ const resources = {
         usersAffected: "Users Affected",
         firstSeen: "First Seen",
         lastSeen: "Last Seen",
-        noStack: "No stack trace"
+        noStack: "No stack trace",
       },
       projects: {
         title: "Projects",
         name: "Name",
         totalErrors: "Total Errors",
-        errorsToday: "Errors Today"
+        errorsToday: "Errors Today",
       },
       issues: {
         title: "Issues",
@@ -42,27 +42,27 @@ const resources = {
           OPEN: "Open",
           IN_PROGRESS: "In Progress",
           RESOLVED: "Resolved",
-          IGNORED: "Ignored"
+          IGNORED: "Ignored",
         },
         priorities: {
           LOW: "Low",
           MEDIUM: "Medium",
           HIGH: "High",
-          HIGHEST: "Highest"
-        }
+          HIGHEST: "Highest",
+        },
       },
       events: {
         title: "Events",
         detail: "Event Detail",
         userAgent: "User Agent",
-        stack: "Stack"
-      }
-    }
+        stack: "Stack",
+      },
+    },
   },
   hy: {
     translation: {
       nav: {
-        projects: "Նախագծեր"
+        projects: "Նախագծեր",
       },
       common: {
         message: "Հաղորդագրություն",
@@ -74,13 +74,13 @@ const resources = {
         usersAffected: "Օգտատերեր",
         firstSeen: "Առաջին անգամ",
         lastSeen: "Վերջին անգամ",
-        noStack: "Stack trace չկա"
+        noStack: "Stack trace չկա",
       },
       projects: {
         title: "Նախագծեր",
         name: "Անուն",
         totalErrors: "Ընդհանուր սխալներ",
-        errorsToday: "Այսօրվա սխալներ"
+        errorsToday: "Այսօրվա սխալներ",
       },
       issues: {
         title: "Խնդիրներ",
@@ -99,23 +99,23 @@ const resources = {
           OPEN: "Բաց",
           IN_PROGRESS: "Ընթացքի մեջ",
           RESOLVED: "Լուծված",
-          IGNORED: "Անտեսված"
+          IGNORED: "Անտեսված",
         },
         priorities: {
           LOW: "Ցածր",
           MEDIUM: "Միջին",
           HIGH: "Բարձր",
-          HIGHEST: "Ամենաբարձր"
-        }
+          HIGHEST: "Ամենաբարձր",
+        },
       },
       events: {
         title: "Իրադարձություններ",
         detail: "Իրադարձության մանրամասներ",
         userAgent: "User Agent",
-        stack: "Stack"
-      }
-    }
-  }
+        stack: "Stack",
+      },
+    },
+  },
 } as const;
 
 void i18n.use(initReactI18next).init({
@@ -123,8 +123,8 @@ void i18n.use(initReactI18next).init({
   lng: localStorage.getItem("artstrace_lang") ?? "en",
   fallbackLng: "en",
   interpolation: {
-    escapeValue: false
-  }
+    escapeValue: false,
+  },
 });
 
 export default i18n;
