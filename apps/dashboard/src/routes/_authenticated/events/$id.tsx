@@ -225,6 +225,32 @@ function EventDetailPage() {
         </div>
         <pre>{event.stack ?? t("common.noStack")}</pre>
 
+        {event.sourceContext ? (
+          <>
+            <hr className="section-sep" />
+            <div className="event-stack-head">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+              <strong>Source context</strong>
+            </div>
+            <div className="source-context">
+              <div className="source-context-title mono">
+                {event.sourceContext.fileName}:{event.sourceContext.line}:{event.sourceContext.column}
+              </div>
+              <div className="source-context-code">
+                {event.sourceContext.lines.map((line) => (
+                  <div className={`source-context-line ${line.highlight ? "source-context-line-active" : ""}`} key={line.number}>
+                    <span className="source-context-number">{line.number}</span>
+                    <code>{line.text || " "}</code>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : null}
+
         <hr className="section-sep" />
 
         <div className="page-head" style={{ marginTop: 0, marginBottom: 10 }}>

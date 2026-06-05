@@ -110,6 +110,16 @@ export type EventRow = {
   fileName?: string | null;
   line?: number | null;
   column?: number | null;
+  sourceContext?: {
+    fileName: string;
+    line: number;
+    column: number;
+    lines: Array<{
+      number: number;
+      text: string;
+      highlight: boolean;
+    }>;
+  } | null;
   url: string;
   userAgent?: string | null;
   userId?: string | null;

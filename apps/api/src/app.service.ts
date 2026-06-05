@@ -4,6 +4,7 @@ import { prisma } from "@artstrace/database";
 import type { Prisma } from "@artstrace/database";
 import { createHash, randomBytes } from "node:crypto";
 import { SourceMapConsumer } from "source-map-js";
+import type { RawSourceMap } from "source-map-js";
 import { z } from "zod";
 
 @Injectable()
@@ -93,6 +94,7 @@ export class AppService {
           fileName: source?.fileName,
           line: source?.line,
           column: source?.column,
+          sourceContext: source?.sourceContext as Prisma.InputJsonValue | undefined,
           url: parsed.data.url,
           userAgent: parsed.data.userAgent,
           userId: parsed.data.userId,
@@ -435,7 +437,7 @@ async function getSource(
   line?: number,
   column?: number,
   stack?: string
-): Promise<{ fileName: string; line: number; column: number } | null> {
+): Promise<ResolvedSource | null> {
   if (!release) {
     if (filePath && line && column) {
       const mapped = await mapWithInlineSourceMap(filePath, line, column);
@@ -463,7 +465,7 @@ async function getSource(
   return null;
 }
 
-function extractSourceFromStack(stack?: string): { fileName: string; line: number; column: number } | null {
+function extractSourceFromStack(stack?: string): ResolvedSource | null {
   if (!stack) return null;
 
   const frames = stack
@@ -675,7 +677,7 @@ async function mapWithInlineSourceMap(
   filePath: string,
   line: number,
   column: number
-): Promise<{ fileName: string; line: number; column: number } | null> {
+): Promise<ResolvedSource | null> {
   try {
     const mapRaw = await loadInlineSourceMap(filePath);
     if (!mapRaw) return null;
@@ -691,7 +693,7 @@ async function mapWithSourceMap(
   filePath: string,
   line: number,
   column: number
-): Promise<{ fileName: string; line: number; column: number } | null> {
+): Promise<ResolvedSource | null> {
   try {
     const mapRaw = await loadSourceMapFromDb(projectId, release, filePath);
     if (!mapRaw) return null;
@@ -705,16 +707,73 @@ function getOriginalPosition(
   mapRaw: string,
   line: number,
   column: number
-): { fileName: string; line: number; column: number } | null {
-  const consumer = new SourceMapConsumer(JSON.parse(mapRaw));
+): ResolvedSource | null {
+  const map = JSON.parse(mapRaw) as RawSourceMap;
+  const consumer = new SourceMapConsumer(map);
   const original = consumer.originalPositionFor({ line, column });
   if (!original.source || !original.line || original.column == null) return null;
 
+  const fileName = original.source.split("/").pop() ?? original.source;
+  const sourceContent = getSourceContent(map, original.source);
+
   return {
-    fileName: original.source.split("/").pop() ?? original.source,
+    fileName,
     line: original.line,
-    column: original.column
+    column: original.column,
+    sourceContext: sourceContent ? buildSourceContext(fileName, original.line, original.column, sourceContent) : null
   };
+}
+
+type ResolvedSource = {
+  fileName: string;
+  line: number;
+  column: number;
+  sourceContext?: SourceContext | null;
+};
+
+type SourceContext = {
+  fileName: string;
+  line: number;
+  column: number;
+  lines: Array<{
+    number: number;
+    text: string;
+    highlight: boolean;
+  }>;
+};
+
+function getSourceContent(map: RawSourceMap, source: string): string | null {
+  const index = map.sources?.findIndex((item) => item === source) ?? -1;
+  if (index < 0) return null;
+  return map.sourcesContent?.[index] ?? null;
+}
+
+function buildSourceContext(fileName: string, line: number, column: number, sourceContent: string): SourceContext | null {
+  const sourceLines = sourceContent.split(/\r?\n/);
+  if (line < 1 || line > sourceLines.length) return null;
+
+  const start = Math.max(1, line - 5);
+  const end = Math.min(sourceLines.length, line + 5);
+  const lines = [];
+
+  for (let number = start; number <= end; number += 1) {
+    lines.push({
+      number,
+      text: truncateSourceLine(sourceLines[number - 1] ?? ""),
+      highlight: number === line
+    });
+  }
+
+  return {
+    fileName,
+    line,
+    column,
+    lines
+  };
+}
+
+function truncateSourceLine(value: string): string {
+  return value.length > 500 ? `${value.slice(0, 500)}...` : value;
 }
 
 async function loadInlineSourceMap(filePath: string): Promise<string | null> {

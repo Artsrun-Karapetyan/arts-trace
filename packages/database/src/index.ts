@@ -69,6 +69,7 @@ type Event = {
   fileName: string | null;
   line: number | null;
   column: number | null;
+  sourceContext: Prisma.InputJsonValue | null;
   url: string;
   userAgent: string | null;
   userId: string | null;
@@ -181,6 +182,7 @@ type EventCreateInput = {
     fileName?: string | null;
     line?: number | null;
     column?: number | null;
+    sourceContext?: Prisma.InputJsonValue | null;
     url: string;
     userAgent?: string | null;
     userId?: string | null;

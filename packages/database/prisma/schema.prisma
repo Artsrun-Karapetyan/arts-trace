@@ -84,6 +84,7 @@ model Event {
   fileName  String?
   line      Int?
   column    Int?
+  sourceContext Json?
   url       String
   userAgent String?
   userId    String?
