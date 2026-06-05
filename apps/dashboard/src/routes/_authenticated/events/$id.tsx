@@ -110,9 +110,12 @@ function EventDetailPage() {
   }, [selectedRequestId, visibleNetworkRows]);
 
   useEffect(() => {
-    if (!syncedRequestId || !networkTableRef.current) return;
-    const row = networkTableRef.current.querySelector<HTMLElement>(`[data-network-id="${CSS.escape(syncedRequestId)}"]`);
-    row?.scrollIntoView({ block: "center", behavior: "auto" });
+    const table = networkTableRef.current;
+    if (!syncedRequestId || !table) return;
+    const row = table.querySelector<HTMLElement>(`[data-network-id="${CSS.escape(syncedRequestId)}"]`);
+    if (!row) return;
+
+    table.scrollTop = row.offsetTop - table.clientHeight / 2 + row.clientHeight / 2;
   }, [syncedRequestId]);
 
   return (
