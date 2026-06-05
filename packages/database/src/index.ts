@@ -125,9 +125,24 @@ type SourceMap = {
 type ProjectMember = {
   id: string;
   projectId: string;
+  userId: string | null;
+  email: string | null;
   name: string;
   role: string | null;
   createdAt: Date;
+};
+
+type ProjectInvite = {
+  id: string;
+  projectId: string;
+  token: string;
+  email: string;
+  role: string | null;
+  acceptedByUserId: string | null;
+  acceptedAt: Date | null;
+  expiresAt: Date;
+  createdAt: Date;
+  project?: Project;
 };
 
 type IssueComment = {
@@ -146,12 +161,16 @@ type ProjectCreateInput = {
   };
 };
 
+type ProjectMemberFindManyInput =
+  | { where: { projectId: string }; orderBy?: { createdAt: "asc" | "desc" } }
+  | { where: { userId: string }; orderBy?: { createdAt: "asc" | "desc" } };
+
 type ProjectFindUniqueInput =
   | { where: { id: string } }
   | { where: { apiKey: string } };
 
 type ProjectFindManyInput = {
-  where?: { ownerId: string };
+  where?: { ownerId?: string; id?: { in: string[] } };
   orderBy?: { createdAt: "asc" | "desc" };
   include?: { _count: { select: { events: true } } };
 };
@@ -300,9 +319,18 @@ type PrismaClientLike = {
     delete(args: { where: { id: string } }): Promise<Project>;
   };
   projectMember: {
-    create(args: { data: { projectId: string; name: string; role?: string | null } }): Promise<ProjectMember>;
-    findMany(args: { where: { projectId: string }; orderBy?: { createdAt: "asc" | "desc" } }): Promise<ProjectMember[]>;
+    create(args: { data: { projectId: string; userId?: string | null; email?: string | null; name: string; role?: string | null } }): Promise<ProjectMember>;
+    findMany(args: ProjectMemberFindManyInput): Promise<ProjectMember[]>;
+    findUnique(args: { where: { id: string } }): Promise<ProjectMember | null>;
+    findFirst(args: { where: { projectId: string; userId?: string | null } }): Promise<ProjectMember | null>;
+    update(args: { where: { id: string }; data: { role?: string | null } }): Promise<ProjectMember>;
     delete(args: { where: { id: string } }): Promise<ProjectMember>;
+  };
+  projectInvite: {
+    create(args: { data: { projectId: string; token: string; email: string; role?: string | null; expiresAt: Date } }): Promise<ProjectInvite>;
+    findMany(args: { where: { projectId: string }; orderBy?: { createdAt: "asc" | "desc" } }): Promise<ProjectInvite[]>;
+    findUnique(args: { where: { token: string }; include?: { project?: true } }): Promise<ProjectInvite | null>;
+    update(args: { where: { id: string }; data: { acceptedByUserId?: string; acceptedAt?: Date } }): Promise<ProjectInvite>;
   };
   issueComment: {
     create(args: { data: { issueId: string; authorId?: string | null; body: string } }): Promise<IssueComment>;

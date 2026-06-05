@@ -15,6 +15,7 @@ function ProjectSettingsPage() {
   const [busy, setBusy] = useState<"rotate" | "delete" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const canManage = project.accessRole === "MAINTAINER";
 
   useEffect(() => {
     if (!deleteOpen) return;
@@ -73,6 +74,12 @@ function ProjectSettingsPage() {
         <div className="meta-grid">
           <p><strong>Name:</strong> {project.name}</p>
           <p><strong>Project ID:</strong> <code className="mono">{project.id}</code></p>
+          <p>
+            <strong>Access:</strong>{" "}
+            <span className={`project-role-pill project-role-${(project.accessRole ?? "MEMBER").toLowerCase()}`}>
+              {project.accessRole ?? "Member"}
+            </span>
+          </p>
         </div>
         {error ? <p className="small-note" style={{ color: "#f87171" }}>{error}</p> : null}
       </div>
@@ -84,15 +91,25 @@ function ProjectSettingsPage() {
         variant="settings"
         onRotate={onRotate}
         rotating={busy === "rotate"}
+        disabled={!canManage}
       />
 
-      <div className="card card-danger" style={{ marginBottom: 14 }}>
-        <div className="section-title">⚠ Danger Zone</div>
-        <p className="small-note" style={{ marginTop: 0, marginBottom: 12 }}>Deleting project removes all issues and events permanently.</p>
-        <button className="btn btn-danger" disabled={busy !== null} onClick={() => setDeleteOpen(true)}>
-          {busy === "delete" ? "Deleting..." : "Delete Project"}
-        </button>
-      </div>
+      {canManage ? (
+        <div className="card card-danger" style={{ marginBottom: 14 }}>
+          <div className="section-title">⚠ Danger Zone</div>
+          <p className="small-note" style={{ marginTop: 0, marginBottom: 12 }}>Deleting project removes all issues and events permanently.</p>
+          <button className="btn btn-danger" disabled={busy !== null} onClick={() => setDeleteOpen(true)}>
+            {busy === "delete" ? "Deleting..." : "Delete Project"}
+          </button>
+        </div>
+      ) : (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="section-title">Permissions</div>
+          <p className="small-note" style={{ marginTop: 0, marginBottom: 0 }}>
+            Your role is read-only for project settings.
+          </p>
+        </div>
+      )}
 
       {deleteOpen ? (
         <div

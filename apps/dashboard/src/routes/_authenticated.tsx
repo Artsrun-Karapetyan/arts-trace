@@ -23,6 +23,7 @@ function AuthenticatedLayout() {
   const projectIdFromSearch = new URLSearchParams(search).get("pid");
   const currentProjectId = match?.[1] ?? projectIdFromSearch ?? null;
   const currentLang = i18n.language;
+  const userLabel = auth.user?.name?.trim() || auth.user?.email || "Account";
 
   function setLanguage(lang: "en" | "hy") {
     void i18n.changeLanguage(lang);
@@ -63,6 +64,13 @@ function AuthenticatedLayout() {
           </Link>
           {currentProjectId ? <ProjectNavigation pathname={pathname} projectId={currentProjectId} /> : null}
         </nav>
+
+        <Link className="side-profile" to="/profile">
+          <div className="small-note side-profile-label">Profile</div>
+          <div className="side-profile-name">{userLabel}</div>
+          <div className="mono side-profile-email">{auth.user?.email ?? "-"}</div>
+          <div className="side-profile-status">Signed in</div>
+        </Link>
 
         <div className="side-footer">
           <div className="lang-switch">

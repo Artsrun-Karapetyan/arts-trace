@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { FormEvent, useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
+import { acceptInvite } from "../lib";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -9,7 +10,8 @@ type AuthFormProps = {
 export function AuthForm({ mode }: AuthFormProps) {
   const navigate = useNavigate();
   const auth = useAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => localStorage.getItem("artstrace_pending_invite_email") ?? "");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +25,15 @@ export function AuthForm({ mode }: AuthFormProps) {
       if (mode === "login") {
         await auth.login({ email, password });
       } else {
-        await auth.register({ email, password });
+        await auth.register({ email, password, name });
+      }
+      const pendingInvite = localStorage.getItem("artstrace_pending_invite");
+      if (pendingInvite) {
+        localStorage.removeItem("artstrace_pending_invite");
+        localStorage.removeItem("artstrace_pending_invite_email");
+        const accepted = await acceptInvite(pendingInvite);
+        await navigate({ to: "/projects/$id/issues", params: { id: accepted.projectId } });
+        return;
       }
       await navigate({ to: "/projects" });
     } catch (err) {
@@ -46,6 +56,21 @@ export function AuthForm({ mode }: AuthFormProps) {
       </div>
 
       <form className="auth-form" onSubmit={onSubmit}>
+        {mode === "register" ? (
+          <label className="auth-field">
+            <span>Name optional</span>
+            <input
+              className="input"
+              type="text"
+              autoComplete="name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Your name"
+              maxLength={120}
+            />
+          </label>
+        ) : null}
+
         <label className="auth-field">
           <span>Email</span>
           <input

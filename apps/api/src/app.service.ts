@@ -7,6 +7,9 @@ import { SourceMapConsumer } from "source-map-js";
 import type { RawSourceMap } from "source-map-js";
 import { z } from "zod";
 
+const projectRoles = ["MAINTAINER", "MEMBER", "VIEWER"] as const;
+type ProjectRole = (typeof projectRoles)[number];
+
 @Injectable()
 export class AppService {
   async createProject(ownerId: string, body: unknown) {
@@ -210,7 +213,7 @@ export class AppService {
   }
 
   async getProjects(ownerId: string) {
-    const projects = await prisma.project.findMany({
+    const ownerProjects = await prisma.project.findMany({
       where: { ownerId },
       orderBy: { createdAt: "desc" },
       include: {
@@ -219,6 +222,25 @@ export class AppService {
         }
       }
     });
+    const user = await prisma.user.findUnique({ where: { id: ownerId } });
+    const memberRows = user
+      ? await prisma.projectMember.findMany({ where: { userId: user.id } })
+      : [];
+    const memberProjectIds = memberRows
+      .map((member) => member.projectId)
+      .filter((projectId) => !ownerProjects.some((project) => project.id === projectId));
+    const memberProjects = memberProjectIds.length
+      ? await prisma.project.findMany({
+        where: { id: { in: memberProjectIds } },
+        orderBy: { createdAt: "desc" },
+        include: {
+          _count: {
+            select: { events: true }
+          }
+        }
+      })
+      : [];
+    const projects = [...ownerProjects, ...memberProjects];
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -247,7 +269,7 @@ export class AppService {
   }
 
   async getProjectEvents(ownerId: string, projectId: string) {
-    await ensureProjectOwned(projectId, ownerId);
+    await ensureProjectAccess(projectId, ownerId);
 
     return prisma.event.findMany({
       where: { projectId },
@@ -256,11 +278,15 @@ export class AppService {
   }
 
   async getProject(ownerId: string, projectId: string) {
-    return ensureProjectOwned(projectId, ownerId);
+    const access = await ensureProjectAccess(projectId, ownerId);
+    return {
+      ...access.project,
+      accessRole: access.role
+    };
   }
 
   async rotateProjectKey(ownerId: string, projectId: string) {
-    await ensureProjectOwned(projectId, ownerId);
+    await ensureMaintainer(projectId, ownerId);
 
     const apiKey = await generateUniqueApiKey();
     return prisma.project.update({
@@ -270,7 +296,7 @@ export class AppService {
   }
 
   async deleteProject(ownerId: string, projectId: string) {
-    await ensureProjectOwned(projectId, ownerId);
+    await ensureMaintainer(projectId, ownerId);
 
     await prisma.$transaction(async (transaction) => {
       const issueIds = (await transaction.issue.findMany({
@@ -298,7 +324,7 @@ export class AppService {
   }
 
   async getProjectIssues(ownerId: string, projectId: string) {
-    await ensureProjectOwned(projectId, ownerId);
+    await ensureProjectAccess(projectId, ownerId);
 
     const issues = await prisma.issue.findMany({
       where: { projectId },
@@ -334,7 +360,7 @@ export class AppService {
   }
 
   async getProjectMembers(ownerId: string, projectId: string) {
-    await ensureProjectOwned(projectId, ownerId);
+    await ensureProjectAccess(projectId, ownerId);
     return prisma.projectMember.findMany({
       where: { projectId },
       orderBy: { createdAt: "asc" }
@@ -342,7 +368,7 @@ export class AppService {
   }
 
   async createProjectMember(ownerId: string, projectId: string, body: unknown) {
-    await ensureProjectOwned(projectId, ownerId);
+    await ensureMaintainer(projectId, ownerId);
     const parsed = projectMemberSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
@@ -352,21 +378,160 @@ export class AppService {
       data: {
         projectId,
         name: parsed.data.name.trim(),
-        role: parsed.data.role?.trim() || null
+        role: parsed.data.role ?? "MEMBER"
+      }
+    });
+  }
+
+  async addExistingProjectMember(ownerId: string, projectId: string, body: unknown) {
+    await ensureMaintainer(projectId, ownerId);
+    const parsed = addExistingMemberSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: parsed.data.email }
+    });
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const existing = await prisma.projectMember.findFirst({
+      where: {
+        projectId,
+        userId: user.id
+      }
+    });
+    if (existing) {
+      throw new BadRequestException("User is already a project member");
+    }
+
+    const name = user.name?.trim() || user.email.split("@")[0] || user.email;
+    return prisma.projectMember.create({
+      data: {
+        projectId,
+        userId: user.id,
+        email: user.email,
+        name,
+        role: parsed.data.role ?? "MEMBER"
+      }
+    });
+  }
+
+  async updateProjectMember(ownerId: string, projectId: string, memberId: string, body: unknown) {
+    await ensureMaintainer(projectId, ownerId);
+    const parsed = updateProjectMemberSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const member = await prisma.projectMember.findUnique({ where: { id: memberId } });
+    if (!member || member.projectId !== projectId) {
+      throw new NotFoundException("Member not found");
+    }
+
+    return prisma.projectMember.update({
+      where: { id: memberId },
+      data: {
+        role: parsed.data.role
       }
     });
   }
 
   async deleteProjectMember(ownerId: string, projectId: string, memberId: string) {
-    await ensureProjectOwned(projectId, ownerId);
+    await ensureMaintainer(projectId, ownerId);
     await prisma.projectMember.delete({ where: { id: memberId } });
     return { success: true };
+  }
+
+  async getProjectInvites(ownerId: string, projectId: string) {
+    await ensureProjectAccess(projectId, ownerId);
+    return prisma.projectInvite.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "desc" }
+    });
+  }
+
+  async createProjectInvite(ownerId: string, projectId: string, body: unknown) {
+    await ensureMaintainer(projectId, ownerId);
+    const parsed = projectInviteSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return prisma.projectInvite.create({
+      data: {
+        projectId,
+        token: randomBytes(24).toString("base64url"),
+        email: parsed.data.email,
+        role: parsed.data.role ?? "MEMBER",
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 48)
+      }
+    });
+  }
+
+  async getInvite(token: string) {
+    const invite = await prisma.projectInvite.findUnique({
+      where: { token },
+      include: { project: true }
+    });
+    if (!invite || invite.expiresAt.getTime() <= Date.now() || invite.acceptedAt) {
+      throw new NotFoundException("Invite not found");
+    }
+
+    return {
+      token: invite.token,
+      projectId: invite.projectId,
+      projectName: invite.project?.name ?? "Project",
+      email: invite.email,
+      role: invite.role,
+      expiresAt: invite.expiresAt
+    };
+  }
+
+  async acceptInvite(userId: string, token: string) {
+    const invite = await prisma.projectInvite.findUnique({
+      where: { token },
+      include: { project: true }
+    });
+    if (!invite || invite.expiresAt.getTime() <= Date.now() || invite.acceptedAt) {
+      throw new NotFoundException("Invite not found");
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+    if (user.email.toLowerCase() !== invite.email.toLowerCase()) {
+      throw new BadRequestException("This invite was created for another email");
+    }
+
+    const name = user.name?.trim() || user.email.split("@")[0] || user.email;
+    await prisma.$transaction(async (transaction) => {
+      await transaction.projectMember.create({
+        data: {
+          projectId: invite.projectId,
+          userId,
+          email: user.email,
+          name,
+          role: invite.role ?? "MEMBER"
+        }
+      });
+      await transaction.projectInvite.update({
+        where: { id: invite.id },
+        data: {
+          acceptedByUserId: userId,
+          acceptedAt: new Date()
+        }
+      });
+    });
+
+    return { success: true, projectId: invite.projectId };
   }
 
   async getIssue(ownerId: string, issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
-    await ensureProjectOwned(issue.projectId, ownerId);
+    await ensureProjectAccess(issue.projectId, ownerId);
 
     const issueEvents = await prisma.event.findMany({
       where: { issueId },
@@ -394,7 +559,7 @@ export class AppService {
 
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
-    await ensureProjectOwned(issue.projectId, ownerId);
+    await ensureProjectAccess(issue.projectId, ownerId);
 
     return prisma.issue.update({
       where: { id: issueId },
@@ -411,14 +576,14 @@ export class AppService {
   async deleteIssue(ownerId: string, issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
-    await ensureProjectOwned(issue.projectId, ownerId);
+    await ensureProjectAccess(issue.projectId, ownerId);
 
     await deleteIssuesWithData([issueId]);
     return { success: true };
   }
 
   async deleteProjectIssues(ownerId: string, projectId: string, body: unknown) {
-    await ensureProjectOwned(projectId, ownerId);
+    await ensureMaintainer(projectId, ownerId);
     const parsed = deleteIssuesSchema.safeParse(body ?? {});
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
@@ -438,7 +603,7 @@ export class AppService {
   async getIssueEvents(ownerId: string, issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
-    await ensureProjectOwned(issue.projectId, ownerId);
+    await ensureProjectAccess(issue.projectId, ownerId);
 
     return prisma.event.findMany({
       where: { issueId },
@@ -450,30 +615,34 @@ export class AppService {
   async getIssueComments(ownerId: string, issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
-    await ensureProjectOwned(issue.projectId, ownerId);
+    await ensureProjectAccess(issue.projectId, ownerId);
 
-    return prisma.issueComment.findMany({
+    const comments = await prisma.issueComment.findMany({
       where: { issueId },
-      orderBy: { createdAt: "asc" }
+      orderBy: { createdAt: "desc" }
     });
+
+    return this.enrichIssueComments(comments);
   }
 
   async createIssueComment(ownerId: string, issueId: string, body: unknown) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
-    await ensureProjectOwned(issue.projectId, ownerId);
+    await ensureProjectAccess(issue.projectId, ownerId);
     const parsed = issueCommentSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
     }
 
-    return prisma.issueComment.create({
+    const created = await prisma.issueComment.create({
       data: {
         issueId,
         authorId: ownerId,
         body: parsed.data.body.trim()
       }
     });
+
+    return this.enrichIssueComments([created]).then((comments) => comments[0]);
   }
 
   async getEvent(ownerId: string, eventId: string) {
@@ -486,7 +655,7 @@ export class AppService {
     });
 
     if (!event) throw new NotFoundException("Event not found");
-    await ensureProjectOwned(event.projectId, ownerId);
+    await ensureProjectAccess(event.projectId, ownerId);
 
     const networkRequests = await getNetworkRequestsCompat(eventId);
 
@@ -494,6 +663,36 @@ export class AppService {
       ...event,
       networkRequests
     };
+  }
+
+  private async enrichIssueComments(comments: Array<{ id: string; issueId: string; authorId: string | null; body: string; createdAt: Date }>) {
+    if (comments.length === 0) return [];
+
+    const authorIds = Array.from(new Set(comments.map((comment) => comment.authorId).filter((id): id is string => Boolean(id))));
+    type AuthorRow = {
+      id: string;
+      name: string | null;
+      email: string;
+    };
+    const authors = authorIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: authorIds } },
+          select: { id: true, name: true, email: true }
+        }) as AuthorRow[]
+      : [];
+    const authorMap = new Map<string, AuthorRow>(authors.map((user) => [user.id, user]));
+
+    return comments.map((comment) => {
+      const author = comment.authorId ? authorMap.get(comment.authorId) : null;
+      return {
+        id: comment.id,
+        issueId: comment.issueId,
+        authorId: comment.authorId,
+        authorName: author?.name?.trim() || author?.email || null,
+        body: comment.body,
+        createdAt: comment.createdAt
+      };
+    });
   }
 }
 
@@ -518,12 +717,32 @@ async function deleteIssuesWithData(issueIds: string[]) {
   });
 }
 
-async function ensureProjectOwned(projectId: string, ownerId: string) {
+async function ensureProjectAccess(projectId: string, userId: string) {
   const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project || project.ownerId !== ownerId) {
+  if (!project) {
     throw new NotFoundException("Project not found");
   }
-  return project;
+  if (project.ownerId === userId) {
+    return { project, role: "MAINTAINER" as const };
+  }
+
+  const member = await prisma.projectMember.findFirst({ where: { projectId, userId } });
+  if (!member) {
+    throw new NotFoundException("Project not found");
+  }
+
+  return {
+    project,
+    role: normalizeProjectRole(member.role)
+  };
+}
+
+async function ensureMaintainer(projectId: string, userId: string) {
+  const access = await ensureProjectAccess(projectId, userId);
+  if (access.role !== "MAINTAINER") {
+    throw new NotFoundException("Project not found");
+  }
+  return access.project;
 }
 
 const createProjectSchema = z.object({
@@ -540,7 +759,23 @@ const updateIssueSchema = z.object({
 
 const projectMemberSchema = z.object({
   name: z.string().min(1).max(120),
-  role: z.string().max(80).optional()
+  role: z.enum(projectRoles).optional()
+});
+
+const addExistingMemberSchema = z.object({
+  email: z.string().email().transform((value) => value.trim().toLowerCase()),
+  role: z.enum(projectRoles).optional()
+});
+
+const updateProjectMemberSchema = z.object({
+  role: z.enum(projectRoles).optional()
+}).refine((body) => body.role !== undefined, {
+  message: "Role is required"
+});
+
+const projectInviteSchema = z.object({
+  email: z.string().email().transform((value) => value.trim().toLowerCase()),
+  role: z.enum(projectRoles).optional()
 });
 
 const issueCommentSchema = z.object({
@@ -554,6 +789,14 @@ const deleteIssuesSchema = z.object({
 function getFingerprint(message: string, stack?: string): string {
   const firstStackLine = stack?.split("\n").find((line) => line.trim().length > 0) ?? "";
   return createHash("sha256").update(`${message}|${firstStackLine}`).digest("hex");
+}
+
+function normalizeProjectRole(role: string | null | undefined): ProjectRole {
+  if (role === "MAINTAINER" || role === "MEMBER" || role === "VIEWER") {
+    return role;
+  }
+
+  return "MEMBER";
 }
 
 async function getSource(

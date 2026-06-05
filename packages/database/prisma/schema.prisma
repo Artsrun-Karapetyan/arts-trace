@@ -32,6 +32,7 @@ model Project {
   events    Event[]
   sourceMaps SourceMap[]
   members   ProjectMember[]
+  invites   ProjectInvite[]
 
   @@index([ownerId])
 }
@@ -40,16 +41,36 @@ model ProjectMember {
   id        String   @id @default(cuid())
   projectId String
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String?
+  email     String?
   name      String
   role      String?
   createdAt DateTime @default(now())
 
   @@index([projectId])
+  @@index([userId])
+}
+
+model ProjectInvite {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  email     String
+  role      String?
+  acceptedByUserId String?
+  acceptedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([token])
 }
 
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
+  name         String?
   passwordHash String
   passwordSalt String
   createdAt    DateTime  @default(now())

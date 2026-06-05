@@ -44,10 +44,13 @@ function IssueDetailPage() {
   const [comments, setComments] = useState<IssueCommentRow[]>(initialComments);
   const [commentBody, setCommentBody] = useState("");
   const [commentSaving, setCommentSaving] = useState(false);
+  const [showAllComments, setShowAllComments] = useState(false);
   const [showAffectedUsers, setShowAffectedUsers] = useState(false);
   const affectedUsers = useMemo(() => getAffectedUsers(events), [events]);
   const primaryAffectedUser = affectedUsers[0] ?? null;
   const assigneeOptions = useMemo(() => members.map((member) => member.name), [members]);
+  const visibleComments = showAllComments ? comments : comments.slice(0, 4);
+  const hasMoreComments = comments.length > 4;
 
   useEffect(() => {
     if (!openWorkflowMenu) return;
@@ -82,7 +85,7 @@ function IssueDetailPage() {
     setCommentSaving(true);
     try {
       const created = await createIssueComment(issue.id, { body: commentBody.trim() });
-      setComments((items) => [...items, created]);
+      setComments((items) => [created, ...items]);
       setCommentBody("");
     } finally {
       setCommentSaving(false);
@@ -238,15 +241,24 @@ function IssueDetailPage() {
         <div className="comments-list">
           {comments.length === 0 ? (
             <div className="empty-panel">No comments yet.</div>
-          ) : comments.map((comment) => (
-            <div className="comment-card" key={comment.id}>
-              <div className="comment-meta">
-                <strong>{comment.authorId ? "Team member" : "Unknown"}</strong>
-                <span className="mono">{fmt(comment.createdAt)}</span>
-              </div>
-              <p>{comment.body}</p>
-            </div>
-          ))}
+          ) : (
+            <>
+              {visibleComments.map((comment) => (
+                <div className="comment-card" key={comment.id}>
+                  <div className="comment-meta">
+                    <strong>{comment.authorName ?? "Unknown"}</strong>
+                    <span className="mono">{fmt(comment.createdAt)}</span>
+                  </div>
+                  <p>{comment.body}</p>
+                </div>
+              ))}
+              {hasMoreComments ? (
+                <button className="btn btn-ghost comments-toggle" type="button" onClick={() => setShowAllComments((value) => !value)}>
+                  {showAllComments ? "See less" : `See more (${comments.length - visibleComments.length})`}
+                </button>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
 

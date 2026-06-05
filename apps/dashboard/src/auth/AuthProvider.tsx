@@ -7,6 +7,7 @@ import {
   login as loginRequest,
   logout as logoutRequest,
   register as registerRequest,
+  updateMe as updateMeRequest,
   setAuthToken,
   type AuthUser,
   type RegisterInput
@@ -19,6 +20,7 @@ export type AuthContextValue = {
   register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
   resolveUser: () => Promise<AuthUser | null>;
+  updateProfile: (input: { name?: string | null }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -81,6 +83,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }
 
+  async function updateProfile(input: { name?: string | null }) {
+    const nextUser = await updateMeRequest(input);
+    updateSession(tokenRef.current, nextUser);
+  }
+
   useEffect(() => {
     function onUnauthorized() {
       updateSession(null, null);
@@ -92,7 +99,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ token, user, login, register, logout, resolveUser }}>
+    <AuthContext.Provider value={{ token, user, login, register, logout, resolveUser, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

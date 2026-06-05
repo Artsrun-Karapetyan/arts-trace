@@ -5,12 +5,18 @@ import { z } from "zod";
 
 const authSchema = z.object({
   email: z.string().email().transform((value) => value.trim().toLowerCase()),
-  password: z.string().min(8).max(128)
+  password: z.string().min(8).max(128),
+  name: z.string().max(120).optional()
+});
+
+const updateMeSchema = z.object({
+  name: z.string().max(120).optional()
 });
 
 type AuthUser = {
   id: string;
   email: string;
+  name: string | null;
   createdAt: Date;
 };
 
@@ -32,6 +38,7 @@ export class AuthService {
       const user = await transaction.user.create({
         data: {
           email: parsed.data.email,
+          name: parsed.data.name?.trim() || null,
           passwordHash: password.hash,
           passwordSalt: password.salt
         }
@@ -78,12 +85,29 @@ export class AuthService {
   async me(user: AuthUser) {
     return user;
   }
+
+  async updateMe(user: AuthUser, body: unknown) {
+    const parsed = updateMeSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        name: parsed.data.name === undefined ? undefined : parsed.data.name.trim() || null
+      }
+    });
+
+    return toUser(updated);
+  }
 }
 
-function toUser(user: { id: string; email: string; createdAt: Date }): AuthUser {
+function toUser(user: { id: string; email: string; name?: string | null; createdAt: Date }): AuthUser {
   return {
     id: user.id,
     email: user.email,
+    name: user.name ?? null,
     createdAt: user.createdAt
   };
 }

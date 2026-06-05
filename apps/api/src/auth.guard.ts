@@ -11,6 +11,7 @@ type AuthedRequest = {
   authUser?: {
     id: string;
     email: string;
+    name: string | null;
     createdAt: Date;
   };
   authToken?: string;
@@ -26,6 +27,7 @@ export class AuthGuard implements CanActivate {
 
     if (
       (method === "POST" && (path === "/auth/register" || path === "/auth/login")) ||
+      (method === "GET" && /^\/invites\/[^/]+$/.test(path)) ||
       (method === "POST" && (path === "/events" || path === "/sourcemaps")) ||
       (method === "POST" && /^\/events\/[^/]+\/replay$/.test(path))
     ) {
@@ -57,6 +59,7 @@ export class AuthGuard implements CanActivate {
     request.authUser = {
       id: session.user.id,
       email: session.user.email,
+      name: session.user.name,
       createdAt: session.user.createdAt
     };
     return true;

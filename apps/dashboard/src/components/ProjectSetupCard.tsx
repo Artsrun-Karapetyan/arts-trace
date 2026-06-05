@@ -8,6 +8,7 @@ type ProjectSetupCardProps = {
   variant?: "create" | "settings";
   onRotate?: () => Promise<void> | void;
   rotating?: boolean;
+  disabled?: boolean;
 };
 
 export function ProjectSetupCard({
@@ -16,7 +17,8 @@ export function ProjectSetupCard({
   apiKey,
   variant = "create",
   onRotate,
-  rotating = false
+  rotating = false,
+  disabled = false
 }: ProjectSetupCardProps) {
   const [copied, setCopied] = useState<"key" | "snippet" | null>(null);
 
@@ -157,7 +159,7 @@ clearUser();`,
             Settings
           </Link>
           {onRotate ? (
-            <button className="btn" type="button" disabled={rotating} onClick={onRotate}>
+            <button className="btn" type="button" disabled={rotating || disabled} onClick={onRotate}>
               {rotating ? "Rotating..." : "Rotate key"}
             </button>
           ) : null}
@@ -168,7 +170,7 @@ clearUser();`,
         <div className="project-setup-pane">
           <div className="section-title">API key</div>
           <code className="mono project-setup-key">{apiKey}</code>
-          <button className="btn btn-ghost project-setup-copy-btn" type="button" onClick={copyKey}>
+          <button className="btn btn-ghost project-setup-copy-btn" type="button" onClick={copyKey} disabled={disabled}>
             {copied === "key" ? "✓ Copied" : "Copy API key"}
           </button>
         </div>
@@ -194,7 +196,7 @@ clearUser();`,
               ))}
             </div>
           </div>
-          <button className="btn btn-ghost project-setup-copy-btn" type="button" onClick={copySnippet}>
+          <button className="btn btn-ghost project-setup-copy-btn" type="button" onClick={copySnippet} disabled={disabled}>
             {copied === "snippet" ? "✓ Copied" : "Copy snippet"}
           </button>
           <div className="project-setup-identity-note">
