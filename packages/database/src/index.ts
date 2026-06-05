@@ -50,6 +50,7 @@ type Issue = {
   fingerprint: string;
   message: string;
   status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   assignee: string | null;
   count: number;
   firstSeen: Date;
@@ -121,6 +122,22 @@ type SourceMap = {
   createdAt: Date;
 };
 
+type ProjectMember = {
+  id: string;
+  projectId: string;
+  name: string;
+  role: string | null;
+  createdAt: Date;
+};
+
+type IssueComment = {
+  id: string;
+  issueId: string;
+  authorId: string | null;
+  body: string;
+  createdAt: Date;
+};
+
 type ProjectCreateInput = {
   data: {
     ownerId: string;
@@ -144,6 +161,9 @@ type IssueFindUniqueInput = { where: { id: string } };
 type IssueFindManyInput = {
   where?: { projectId?: string; issueId?: { in: string[] } };
   orderBy?: { lastSeen?: "asc" | "desc"; createdAt?: "asc" | "desc" };
+  select?: {
+    id?: true;
+  };
 };
 
 type IssueUpsertInput = {
@@ -161,6 +181,7 @@ type IssueUpsertInput = {
     message?: string;
     lastSeen?: Date;
     status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
+    priority?: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
     assignee?: string | null;
   };
 };
@@ -169,6 +190,7 @@ type IssueUpdateInput = {
   where: { id: string };
   data: {
     status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
+    priority?: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
     assignee?: string | null;
   };
 };
@@ -222,6 +244,8 @@ type CountInput = {
 
 type DeleteManyInput =
   | { where: { projectId: string } }
+  | { where: { issueId: { in: string[] } } }
+  | { where: { id: { in: string[] } } }
   | { where: { eventId: { in: string[] } } };
 
 type CreateManyInput<T> = {
@@ -275,19 +299,29 @@ type PrismaClientLike = {
     update(args: { where: { id: string }; data: { apiKey: string } }): Promise<Project>;
     delete(args: { where: { id: string } }): Promise<Project>;
   };
+  projectMember: {
+    create(args: { data: { projectId: string; name: string; role?: string | null } }): Promise<ProjectMember>;
+    findMany(args: { where: { projectId: string }; orderBy?: { createdAt: "asc" | "desc" } }): Promise<ProjectMember[]>;
+    delete(args: { where: { id: string } }): Promise<ProjectMember>;
+  };
+  issueComment: {
+    create(args: { data: { issueId: string; authorId?: string | null; body: string } }): Promise<IssueComment>;
+    findMany(args: { where: { issueId: string }; orderBy?: { createdAt: "asc" | "desc" } }): Promise<IssueComment[]>;
+    deleteMany(args: DeleteManyInput): Promise<{ count: number }>;
+  };
   issue: {
     upsert(args: IssueUpsertInput): Promise<Issue>;
     findUnique(args: IssueFindUniqueInput): Promise<Issue | null>;
     findMany(args: IssueFindManyInput): Promise<Issue[]>;
     update(args: IssueUpdateInput): Promise<Issue>;
-    deleteMany(args: { where: { projectId: string } }): Promise<{ count: number }>;
+    deleteMany(args: DeleteManyInput): Promise<{ count: number }>;
   };
   event: {
     create(args: EventCreateInput): Promise<Event>;
     findUnique(args: EventFindUniqueInput): Promise<Event | null>;
     findMany(args: EventFindManyInput): Promise<Event[]>;
     count(args: CountInput): Promise<number>;
-    deleteMany(args: { where: { projectId: string } }): Promise<{ count: number }>;
+    deleteMany(args: DeleteManyInput): Promise<{ count: number }>;
   };
   breadcrumb: {
     createMany(args: CreateManyInput<{

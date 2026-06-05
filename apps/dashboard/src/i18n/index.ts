@@ -33,6 +33,7 @@ const resources = {
         workflow: "Issue Workflow",
         workflowHint: "Track ownership and move the issue through resolution.",
         status: "Status",
+        priority: "Priority",
         assignee: "Assignee",
         assigneePlaceholder: "Developer name",
         save: "Save",
@@ -42,6 +43,12 @@ const resources = {
           IN_PROGRESS: "In Progress",
           RESOLVED: "Resolved",
           IGNORED: "Ignored"
+        },
+        priorities: {
+          LOW: "Low",
+          MEDIUM: "Medium",
+          HIGH: "High",
+          HIGHEST: "Highest"
         }
       },
       events: {
@@ -83,6 +90,7 @@ const resources = {
         workflow: "Խնդրի ընթացք",
         workflowHint: "Նշեք պատասխանատուին և փոխեք խնդրի կարգավիճակը։",
         status: "Կարգավիճակ",
+        priority: "Առաջնահերթություն",
         assignee: "Պատասխանատու",
         assigneePlaceholder: "Մշակողի անունը",
         save: "Պահպանել",
@@ -92,6 +100,12 @@ const resources = {
           IN_PROGRESS: "Ընթացքի մեջ",
           RESOLVED: "Լուծված",
           IGNORED: "Անտեսված"
+        },
+        priorities: {
+          LOW: "Ցածր",
+          MEDIUM: "Միջին",
+          HIGH: "Բարձր",
+          HIGHEST: "Ամենաբարձր"
         }
       },
       events: {

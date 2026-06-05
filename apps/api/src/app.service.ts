@@ -273,6 +273,10 @@ export class AppService {
     await ensureProjectOwned(projectId, ownerId);
 
     await prisma.$transaction(async (transaction) => {
+      const issueIds = (await transaction.issue.findMany({
+        where: { projectId },
+        select: { id: true }
+      })).map((item) => item.id);
       const eventIds = (await transaction.event.findMany({
         where: { projectId },
         select: { id: true }
@@ -284,6 +288,7 @@ export class AppService {
         await transaction.replayChunk.deleteMany({ where: { eventId: { in: eventIds } } });
       }
 
+      await transaction.issueComment.deleteMany({ where: { issueId: { in: issueIds } } });
       await transaction.event.deleteMany({ where: { projectId } });
       await transaction.issue.deleteMany({ where: { projectId } });
       await transaction.project.delete({ where: { id: projectId } });
@@ -328,6 +333,36 @@ export class AppService {
     }));
   }
 
+  async getProjectMembers(ownerId: string, projectId: string) {
+    await ensureProjectOwned(projectId, ownerId);
+    return prisma.projectMember.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "asc" }
+    });
+  }
+
+  async createProjectMember(ownerId: string, projectId: string, body: unknown) {
+    await ensureProjectOwned(projectId, ownerId);
+    const parsed = projectMemberSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return prisma.projectMember.create({
+      data: {
+        projectId,
+        name: parsed.data.name.trim(),
+        role: parsed.data.role?.trim() || null
+      }
+    });
+  }
+
+  async deleteProjectMember(ownerId: string, projectId: string, memberId: string) {
+    await ensureProjectOwned(projectId, ownerId);
+    await prisma.projectMember.delete({ where: { id: memberId } });
+    return { success: true };
+  }
+
   async getIssue(ownerId: string, issueId: string) {
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) throw new NotFoundException("Issue not found");
@@ -365,11 +400,39 @@ export class AppService {
       where: { id: issueId },
       data: {
         status: parsed.data.status,
+        priority: parsed.data.priority,
         assignee: parsed.data.assignee === undefined
           ? undefined
           : parsed.data.assignee.trim() || null
       }
     });
+  }
+
+  async deleteIssue(ownerId: string, issueId: string) {
+    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+    if (!issue) throw new NotFoundException("Issue not found");
+    await ensureProjectOwned(issue.projectId, ownerId);
+
+    await deleteIssuesWithData([issueId]);
+    return { success: true };
+  }
+
+  async deleteProjectIssues(ownerId: string, projectId: string, body: unknown) {
+    await ensureProjectOwned(projectId, ownerId);
+    const parsed = deleteIssuesSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const issues = await prisma.issue.findMany({
+      where: {
+        projectId,
+        ...(parsed.data.issueIds?.length ? { id: { in: parsed.data.issueIds } } : {})
+      }
+    });
+
+    await deleteIssuesWithData(issues.map((issue) => issue.id));
+    return { success: true, deleted: issues.length };
   }
 
   async getIssueEvents(ownerId: string, issueId: string) {
@@ -381,6 +444,35 @@ export class AppService {
       where: { issueId },
       orderBy: { createdAt: "desc" },
       take: 50
+    });
+  }
+
+  async getIssueComments(ownerId: string, issueId: string) {
+    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+    if (!issue) throw new NotFoundException("Issue not found");
+    await ensureProjectOwned(issue.projectId, ownerId);
+
+    return prisma.issueComment.findMany({
+      where: { issueId },
+      orderBy: { createdAt: "asc" }
+    });
+  }
+
+  async createIssueComment(ownerId: string, issueId: string, body: unknown) {
+    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+    if (!issue) throw new NotFoundException("Issue not found");
+    await ensureProjectOwned(issue.projectId, ownerId);
+    const parsed = issueCommentSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return prisma.issueComment.create({
+      data: {
+        issueId,
+        authorId: ownerId,
+        body: parsed.data.body.trim()
+      }
     });
   }
 
@@ -405,6 +497,27 @@ export class AppService {
   }
 }
 
+async function deleteIssuesWithData(issueIds: string[]) {
+  if (issueIds.length === 0) return;
+
+  await prisma.$transaction(async (transaction) => {
+    const eventIds = (await transaction.event.findMany({
+      where: { issueId: { in: issueIds } },
+      select: { id: true }
+    })).map((item) => item.id);
+
+    if (eventIds.length > 0) {
+      await transaction.breadcrumb.deleteMany({ where: { eventId: { in: eventIds } } });
+      await transaction.networkRequest.deleteMany({ where: { eventId: { in: eventIds } } });
+      await transaction.replayChunk.deleteMany({ where: { eventId: { in: eventIds } } });
+      await transaction.event.deleteMany({ where: { issueId: { in: issueIds } } });
+    }
+
+    await transaction.issueComment.deleteMany({ where: { issueId: { in: issueIds } } });
+    await transaction.issue.deleteMany({ where: { id: { in: issueIds } } });
+  });
+}
+
 async function ensureProjectOwned(projectId: string, ownerId: string) {
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project || project.ownerId !== ownerId) {
@@ -419,9 +532,23 @@ const createProjectSchema = z.object({
 
 const updateIssueSchema = z.object({
   status: z.enum(["OPEN", "IN_PROGRESS", "RESOLVED", "IGNORED"]).optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "HIGHEST"]).optional(),
   assignee: z.string().max(120).optional()
-}).refine((body) => body.status !== undefined || body.assignee !== undefined, {
+}).refine((body) => body.status !== undefined || body.priority !== undefined || body.assignee !== undefined, {
   message: "At least one workflow field is required"
+});
+
+const projectMemberSchema = z.object({
+  name: z.string().min(1).max(120),
+  role: z.string().max(80).optional()
+});
+
+const issueCommentSchema = z.object({
+  body: z.string().min(1).max(4000)
+});
+
+const deleteIssuesSchema = z.object({
+  issueIds: z.array(z.string().min(1)).optional()
 });
 
 function getFingerprint(message: string, stack?: string): string {

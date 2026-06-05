@@ -87,6 +87,7 @@ export type IssueRow = {
   fingerprint: string;
   message: string;
   status: IssueStatus;
+  priority: IssuePriority;
   assignee?: string | null;
   count: number;
   usersCount: number;
@@ -100,6 +101,23 @@ export type IssueRow = {
 };
 
 export type IssueStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
+export type IssuePriority = "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
+
+export type ProjectMemberRow = {
+  id: string;
+  projectId: string;
+  name: string;
+  role?: string | null;
+  createdAt: string;
+};
+
+export type IssueCommentRow = {
+  id: string;
+  issueId: string;
+  authorId?: string | null;
+  body: string;
+  createdAt: string;
+};
 
 export type EventRow = {
   id: string;
@@ -192,9 +210,39 @@ export async function fetchIssue(issueId: string): Promise<IssueRow> {
   return fetchJson<IssueRow>(`/issues/${issueId}`);
 }
 
+export async function fetchProjectMembers(projectId: string): Promise<ProjectMemberRow[]> {
+  return fetchJson<ProjectMemberRow[]>(`/projects/${projectId}/members`);
+}
+
+export async function createProjectMember(projectId: string, input: { name: string; role?: string }): Promise<ProjectMemberRow> {
+  return fetchJson<ProjectMemberRow>(`/projects/${projectId}/members`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input)
+  });
+}
+
+export async function deleteProjectMember(projectId: string, memberId: string): Promise<{ success: true }> {
+  return fetchJson<{ success: true }>(`/projects/${projectId}/members/${memberId}`, {
+    method: "DELETE"
+  });
+}
+
+export async function fetchIssueComments(issueId: string): Promise<IssueCommentRow[]> {
+  return fetchJson<IssueCommentRow[]>(`/issues/${issueId}/comments`);
+}
+
+export async function createIssueComment(issueId: string, input: { body: string }): Promise<IssueCommentRow> {
+  return fetchJson<IssueCommentRow>(`/issues/${issueId}/comments`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input)
+  });
+}
+
 export async function updateIssue(
   issueId: string,
-  input: { status?: IssueStatus; assignee?: string }
+  input: { status?: IssueStatus; priority?: IssuePriority; assignee?: string }
 ): Promise<IssueRow> {
   return fetchJson<IssueRow>(`/issues/${issueId}`, {
     method: "PATCH",
@@ -202,6 +250,22 @@ export async function updateIssue(
       "content-type": "application/json"
     },
     body: JSON.stringify(input)
+  });
+}
+
+export async function deleteIssue(issueId: string): Promise<{ success: true }> {
+  return fetchJson<{ success: true }>(`/issues/${issueId}`, {
+    method: "DELETE"
+  });
+}
+
+export async function deleteProjectIssues(projectId: string, issueIds?: string[]): Promise<{ success: true; deleted: number }> {
+  return fetchJson<{ success: true; deleted: number }>(`/projects/${projectId}/issues`, {
+    method: "DELETE",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(issueIds?.length ? { issueIds } : {})
   });
 }
 

@@ -13,6 +13,13 @@ enum IssueStatus {
   IGNORED
 }
 
+enum IssuePriority {
+  LOW
+  MEDIUM
+  HIGH
+  HIGHEST
+}
+
 model Project {
   id        String   @id @default(cuid())
   ownerId   String?
@@ -24,8 +31,20 @@ model Project {
   issues    Issue[]
   events    Event[]
   sourceMaps SourceMap[]
+  members   ProjectMember[]
 
   @@index([ownerId])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  role      String?
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
 }
 
 model User {
@@ -60,15 +79,28 @@ model Issue {
   fingerprint String
   message     String
   status      IssueStatus @default(OPEN)
+  priority    IssuePriority @default(MEDIUM)
   assignee    String?
   count       Int      @default(1)
   firstSeen   DateTime @default(now())
   lastSeen    DateTime @default(now())
 
   events      Event[]
+  comments    IssueComment[]
 
   @@unique([projectId, fingerprint])
   @@index([projectId, lastSeen])
+}
+
+model IssueComment {
+  id        String   @id @default(cuid())
+  issueId   String
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([issueId, createdAt])
 }
 
 model Event {

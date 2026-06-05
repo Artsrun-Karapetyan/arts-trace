@@ -61,6 +61,21 @@ export class AppController {
     return this.appService.getProjectIssues(request.authUser!.id, id);
   }
 
+  @Get("projects/:id/members")
+  getProjectMembers(@Req() request: AuthedRequest, @Param("id") id: string) {
+    return this.appService.getProjectMembers(request.authUser!.id, id);
+  }
+
+  @Post("projects/:id/members")
+  createProjectMember(@Req() request: AuthedRequest, @Param("id") id: string, @Body() body: unknown) {
+    return this.appService.createProjectMember(request.authUser!.id, id, body);
+  }
+
+  @Delete("projects/:projectId/members/:memberId")
+  deleteProjectMember(@Req() request: AuthedRequest, @Param("projectId") projectId: string, @Param("memberId") memberId: string) {
+    return this.appService.deleteProjectMember(request.authUser!.id, projectId, memberId);
+  }
+
   @Get("issues/:id")
   getIssue(@Req() request: AuthedRequest, @Param("id") id: string) {
     return this.appService.getIssue(request.authUser!.id, id);
@@ -71,9 +86,29 @@ export class AppController {
     return this.appService.updateIssue(request.authUser!.id, id, body);
   }
 
+  @Delete("issues/:id")
+  deleteIssue(@Req() request: AuthedRequest, @Param("id") id: string) {
+    return this.appService.deleteIssue(request.authUser!.id, id);
+  }
+
+  @Delete("projects/:id/issues")
+  deleteProjectIssues(@Req() request: AuthedRequest, @Param("id") id: string, @Body() body: unknown) {
+    return this.appService.deleteProjectIssues(request.authUser!.id, id, body);
+  }
+
   @Get("issues/:id/events")
   getIssueEvents(@Req() request: AuthedRequest, @Param("id") id: string) {
     return this.appService.getIssueEvents(request.authUser!.id, id);
+  }
+
+  @Get("issues/:id/comments")
+  getIssueComments(@Req() request: AuthedRequest, @Param("id") id: string) {
+    return this.appService.getIssueComments(request.authUser!.id, id);
+  }
+
+  @Post("issues/:id/comments")
+  createIssueComment(@Req() request: AuthedRequest, @Param("id") id: string, @Body() body: unknown) {
+    return this.appService.createIssueComment(request.authUser!.id, id, body);
   }
 
   @Get("events/:id")
