@@ -48,6 +48,7 @@ function ProjectTeamPage() {
   const [saving, setSaving] = useState(false);
   const canManage = project.accessRole === "MAINTAINER";
   const ownerLabel = project.owner?.name?.trim() || project.owner?.email || "Owner";
+  const editableMembers = members.filter((member) => member.userId !== project.owner?.id);
 
   const createInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -128,14 +129,13 @@ function ProjectTeamPage() {
         </div>
       ) : null}
       <div className="panel team-list">
-        {members.length === 0 ? (
+        {editableMembers.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">+</div>
-            <div className="empty-state-text">No team members yet.</div>
+            <div className="empty-state-text">No additional team members yet.</div>
           </div>
         ) : (
-          members.map((member) => (
-            member.userId === project.owner?.id ? null : (
+          editableMembers.map((member) => (
             <div className="team-member-row" key={member.id}>
               <div>
                 <strong>{member.name}</strong>
@@ -160,7 +160,6 @@ function ProjectTeamPage() {
                 </button>
               </div>
             </div>
-            )
           ))
         )}
       </div>
