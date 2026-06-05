@@ -19,12 +19,27 @@ export class AppService {
     }
 
     const apiKey = await generateUniqueApiKey();
-    const project = await prisma.project.create({
-      data: {
-        ownerId,
-        name: parsed.data.name.trim(),
-        apiKey
-      }
+    const owner = await prisma.user.findUnique({ where: { id: ownerId } });
+    const project = await prisma.$transaction(async (transaction) => {
+      const createdProject = await transaction.project.create({
+        data: {
+          ownerId,
+          name: parsed.data.name.trim(),
+          apiKey
+        }
+      });
+
+      await transaction.projectMember.create({
+        data: {
+          projectId: createdProject.id,
+          userId: ownerId,
+          email: owner?.email ?? null,
+          name: owner?.name?.trim() || owner?.email || "Owner",
+          role: "MAINTAINER"
+        }
+      });
+
+      return createdProject;
     });
 
     return {
@@ -279,9 +294,16 @@ export class AppService {
 
   async getProject(ownerId: string, projectId: string) {
     const access = await ensureProjectAccess(projectId, ownerId);
+    const owner = access.project.ownerId
+      ? await prisma.user.findUnique({
+          where: { id: access.project.ownerId },
+          select: { id: true, email: true, name: true }
+        })
+      : null;
     return {
       ...access.project,
-      accessRole: access.role
+      accessRole: access.role,
+      owner
     };
   }
 
@@ -361,10 +383,36 @@ export class AppService {
 
   async getProjectMembers(ownerId: string, projectId: string) {
     await ensureProjectAccess(projectId, ownerId);
-    return prisma.projectMember.findMany({
+    const project = await prisma.project.findUnique({
+      where: { id: projectId }
+    });
+    const members = await prisma.projectMember.findMany({
       where: { projectId },
       orderBy: { createdAt: "asc" }
     });
+
+    const hasOwner = project?.ownerId ? members.some((member) => member.userId === project.ownerId) : true;
+    if (!project?.ownerId || hasOwner) {
+      return members;
+    }
+
+    const owner = await prisma.user.findUnique({ where: { id: project.ownerId } });
+    if (!owner) {
+      return members;
+    }
+
+    return [
+      {
+        id: `${project.id}:owner`,
+        projectId: project.id,
+        userId: owner.id,
+        email: owner.email,
+        name: owner.name?.trim() || owner.email,
+        role: "MAINTAINER",
+        createdAt: project.createdAt
+      },
+      ...members
+    ];
   }
 
   async createProjectMember(ownerId: string, projectId: string, body: unknown) {

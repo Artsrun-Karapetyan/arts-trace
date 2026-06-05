@@ -72,6 +72,11 @@ export type ProjectRow = {
   totalErrors: number;
   errorsToday: number;
   accessRole?: ProjectRole;
+  owner?: {
+    id: string;
+    email: string;
+    name?: string | null;
+  } | null;
 };
 
 export type CreateProjectInput = {

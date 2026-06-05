@@ -47,6 +47,7 @@ function ProjectTeamPage() {
   const [inviteCopied, setInviteCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const canManage = project.accessRole === "MAINTAINER";
+  const ownerLabel = project.owner?.name?.trim() || project.owner?.email || "Owner";
 
   const createInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -116,6 +117,16 @@ function ProjectTeamPage() {
           </button>
         </div>
       </div>
+      {project.owner ? (
+        <div className="panel team-owner-panel">
+          <div>
+            <div className="section-title">Owner</div>
+            <strong>{ownerLabel}</strong>
+            <div className="mono small-note">{project.owner.email}</div>
+          </div>
+          <div className="project-role-pill project-role-maintainer">Maintainer</div>
+        </div>
+      ) : null}
       <div className="panel team-list">
         {members.length === 0 ? (
           <div className="empty-state">
@@ -124,6 +135,7 @@ function ProjectTeamPage() {
           </div>
         ) : (
           members.map((member) => (
+            member.userId === project.owner?.id ? null : (
             <div className="team-member-row" key={member.id}>
               <div>
                 <strong>{member.name}</strong>
@@ -148,6 +160,7 @@ function ProjectTeamPage() {
                 </button>
               </div>
             </div>
+            )
           ))
         )}
       </div>
