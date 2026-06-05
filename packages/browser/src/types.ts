@@ -34,6 +34,53 @@ export type IngestEventInput = {
   replayEvents?: Array<Record<string, unknown>>;
 };
 
+export type ManualReportAnnotation = {
+  kind: "highlight" | "arrow" | "circle" | "note";
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  text?: string;
+  color?: string;
+};
+
+export type ReportBugInput = {
+  title: string;
+  description?: string;
+  screenshotData?: string;
+  annotations?: ManualReportAnnotation[];
+  url?: string;
+  userAgent?: string;
+  createdByUserId?: string;
+};
+
+export type OpenReportDialogOptions = {
+  defaultTitle?: string;
+  defaultDescription?: string;
+  defaultScreenshotData?: string;
+  defaultAnnotations?: ManualReportAnnotation[];
+  onSubmit?: (input: ReportBugInput) => void | Promise<void>;
+  onClose?: () => void;
+};
+
+export type MountReportBugButtonOptions = {
+  label?: string;
+  title?: string;
+  description?: string;
+  defaultScreenshotData?: string;
+  defaultAnnotations?: ManualReportAnnotation[];
+  onSubmit?: (input: ReportBugInput) => void | Promise<void>;
+  onOpen?: () => void;
+  onClose?: () => void;
+  target?: HTMLElement | string;
+};
+
+export type ManualReportResponse = {
+  success: boolean;
+  issueId?: string;
+  manualReportId?: string;
+};
+
 export type InitOptions = {
   apiKey: string;
   endpoint?: string;

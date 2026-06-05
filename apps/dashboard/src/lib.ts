@@ -94,6 +94,8 @@ export type IssueRow = {
   projectId: string;
   fingerprint: string;
   message: string;
+  type?: IssueType;
+  manualReports?: ManualReportRow[];
   status: IssueStatus;
   priority: IssuePriority;
   assignee?: string | null;
@@ -110,7 +112,31 @@ export type IssueRow = {
 
 export type IssueStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
 export type IssuePriority = "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
+export type IssueType = "AUTOMATIC" | "MANUAL";
 export type ProjectRole = "MAINTAINER" | "MEMBER" | "VIEWER";
+
+export type ManualReportAnnotation = {
+  kind: "highlight" | "arrow" | "circle" | "note";
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  text?: string;
+  color?: string;
+};
+
+export type ManualReportRow = {
+  id: string;
+  issueId: string;
+  title: string;
+  description?: string | null;
+  screenshotData?: string | null;
+  annotations?: ManualReportAnnotation[] | null;
+  url: string;
+  userAgent?: string | null;
+  createdByUserId?: string | null;
+  createdAt: string;
+};
 
 export type ProjectMemberRow = {
   id: string;

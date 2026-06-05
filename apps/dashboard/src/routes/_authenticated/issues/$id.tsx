@@ -12,6 +12,7 @@ import {
   fmt,
   updateIssue,
   type IssueCommentRow,
+  type ManualReportRow,
   type IssuePriority,
   type IssueStatus
 } from "../../../lib";
@@ -51,6 +52,8 @@ function IssueDetailPage() {
   const assigneeOptions = useMemo(() => members.map((member) => member.name), [members]);
   const visibleComments = showAllComments ? comments : comments.slice(0, 4);
   const hasMoreComments = comments.length > 4;
+  const manualReports = issue.manualReports ?? [];
+  const latestManualReport = manualReports[0] ?? null;
 
   useEffect(() => {
     if (!openWorkflowMenu) return;
@@ -101,7 +104,10 @@ function IssueDetailPage() {
         <div className="issue-detail-hero">
           <div className="issue-detail-main">
             <div className="section-title">{t("common.message")}</div>
-            <h3>{issue.message}</h3>
+            <h3 className="issue-title-row">
+              <span>{issue.message}</span>
+              {issue.type === "MANUAL" ? <span className="manual-issue-badge">Manual</span> : null}
+            </h3>
             <div className="issue-detail-stats">
               <span><strong>{issue.count}</strong> events</span>
               <button className="issue-stat-button" type="button" onClick={() => setShowAffectedUsers(true)}>
@@ -217,6 +223,16 @@ function IssueDetailPage() {
       </div>
       {showAffectedUsers ? (
         <AffectedUsersModal users={affectedUsers} onClose={() => setShowAffectedUsers(false)} />
+      ) : null}
+
+      {latestManualReport ? (
+        <>
+          <hr className="section-sep" />
+          <div className="page-head" style={{ marginTop: 0 }}>
+            <h2>Manual report</h2>
+          </div>
+          <ManualReportPanel report={latestManualReport} total={manualReports.length} />
+        </>
       ) : null}
 
       <hr className="section-sep" />
@@ -388,6 +404,56 @@ function AffectedUsersModal({ users, onClose }: { users: AffectedUserSummary[]; 
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ManualReportPanel({ report, total }: { report: ManualReportRow; total: number }) {
+  return (
+    <div className="panel manual-report-panel">
+      <div className="manual-report-copy">
+        <div>
+          <div className="section-title">Latest manual report</div>
+          <h3>{report.title}</h3>
+          {report.description ? <p>{report.description}</p> : <p className="small-note">No description provided.</p>}
+        </div>
+        <div className="manual-report-meta">
+          <span>{total} {total === 1 ? "report" : "reports"}</span>
+          <span className="mono">{fmt(report.createdAt)}</span>
+          <span className="mono">{report.url}</span>
+        </div>
+      </div>
+      {report.screenshotData ? (
+        <div className="manual-report-shot">
+          <img src={report.screenshotData} alt="Manual bug report screenshot" />
+          <ManualReportAnnotations annotations={report.annotations ?? []} />
+        </div>
+      ) : (
+        <div className="empty-panel">No screenshot attached.</div>
+      )}
+    </div>
+  );
+}
+
+function ManualReportAnnotations({ annotations }: { annotations: ManualReportRow["annotations"] }) {
+  if (!annotations?.length) return null;
+
+  return (
+    <div className="manual-report-annotations">
+      {annotations.map((annotation, index) => (
+        <span
+          className={`manual-report-annotation manual-report-annotation-${annotation.kind}`}
+          key={`${annotation.kind}-${index}`}
+          style={{
+            left: `${annotation.x}%`,
+            top: `${annotation.y}%`,
+            width: annotation.kind === "note" ? undefined : `${annotation.width ?? 12}%`,
+            height: annotation.kind === "note" ? undefined : `${annotation.height ?? 12}%`
+          }}
+        >
+          {annotation.kind === "note" ? annotation.text || "Note" : null}
+        </span>
+      ))}
     </div>
   );
 }

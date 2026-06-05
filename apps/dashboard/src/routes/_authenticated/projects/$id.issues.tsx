@@ -212,6 +212,7 @@ function ProjectIssuesPage() {
                       <Link className="link-strong" to="/issues/$id" params={{ id: issue.id }} search={{ pid: id }}>
                         {issue.message}
                       </Link>
+                      {issue.type === "MANUAL" ? <span className="manual-issue-badge">Manual</span> : null}
                     </td>
                     <td>{issue.count}</td>
                     <td>{issue.usersCount}</td>

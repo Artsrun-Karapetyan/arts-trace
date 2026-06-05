@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ingestEventSchema, uploadReplaySchema, uploadSourceMapSchema } from "@artstrace/shared";
+import { ingestEventSchema, manualReportSchema, uploadReplaySchema, uploadSourceMapSchema } from "@artstrace/shared";
 import { prisma } from "@artstrace/database";
 import type { Prisma } from "@artstrace/database";
 import { createHash, randomBytes } from "node:crypto";
@@ -227,6 +227,68 @@ export class AppService {
     return { success: true };
   }
 
+  async createManualReport(body: unknown) {
+    const parsed = manualReportSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { apiKey: parsed.data.projectKey }
+    });
+    if (!project) {
+      throw new NotFoundException("Project not found");
+    }
+
+    const title = parsed.data.title.trim();
+    const description = parsed.data.description?.trim() || null;
+    const fingerprint = getManualReportFingerprint(project.id, title, parsed.data.url, description);
+    const createdByUserId = parsed.data.createdByUserId?.trim()
+      ? await resolveExistingUserId(parsed.data.createdByUserId.trim())
+      : null;
+
+    const issue = await prisma.issue.upsert({
+      where: {
+        projectId_fingerprint: {
+          projectId: project.id,
+          fingerprint
+        }
+      },
+      create: {
+        projectId: project.id,
+        fingerprint,
+        message: title,
+        count: 1,
+        firstSeen: new Date(),
+        lastSeen: new Date()
+      },
+      update: {
+        message: title,
+        lastSeen: new Date(),
+        count: { increment: 1 }
+      }
+    });
+
+    const report = await prisma.manualReport.create({
+      data: {
+        issueId: issue.id,
+        title,
+        description,
+        screenshotData: parsed.data.screenshotData ?? null,
+        annotations: parsed.data.annotations as Prisma.InputJsonValue | null | undefined,
+        url: parsed.data.url,
+        userAgent: parsed.data.userAgent,
+        createdByUserId
+      }
+    });
+
+    return {
+      success: true,
+      issueId: issue.id,
+      manualReportId: report.id
+    };
+  }
+
   async getProjects(ownerId: string) {
     const ownerProjects = await prisma.project.findMany({
       where: { ownerId },
@@ -375,10 +437,23 @@ export class AppService {
       }
     }
 
-    return issues.map((issue) => ({
-      ...issue,
-      usersCount: uniqueUsersMap[issue.id]?.size ?? 0
-    }));
+    const manualReportRows = await Promise.all(
+      issues.map((issue) => prisma.manualReport.findMany({
+        where: { issueId: issue.id },
+        orderBy: { createdAt: "desc" }
+      }))
+    );
+    const manualReportsByIssueId = new Map(issues.map((issue, index) => [issue.id, manualReportRows[index] ?? []]));
+
+    return issues.map((issue) => {
+      const manualReports = manualReportsByIssueId.get(issue.id) ?? [];
+      return {
+        ...issue,
+        type: manualReports.length > 0 ? "MANUAL" : "AUTOMATIC",
+        manualReports,
+        usersCount: uniqueUsersMap[issue.id]?.size ?? 0
+      };
+    });
   }
 
   async getProjectMembers(ownerId: string, projectId: string) {
@@ -588,12 +663,18 @@ export class AppService {
         userAgent: true
       }
     });
+    const manualReports = await prisma.manualReport.findMany({
+      where: { issueId },
+      orderBy: { createdAt: "desc" }
+    });
 
     const uniqueCount = new Set(issueEvents.map((u) => u.userId).filter(Boolean)).size;
     const environment = buildEnvironmentAnalytics(issueEvents.map((item) => item.userAgent));
 
     return {
       ...issue,
+      type: manualReports.length > 0 ? "MANUAL" : "AUTOMATIC",
+      manualReports,
       usersCount: uniqueCount,
       environment
     };
@@ -837,6 +918,10 @@ const deleteIssuesSchema = z.object({
 function getFingerprint(message: string, stack?: string): string {
   const firstStackLine = stack?.split("\n").find((line) => line.trim().length > 0) ?? "";
   return createHash("sha256").update(`${message}|${firstStackLine}`).digest("hex");
+}
+
+function getManualReportFingerprint(projectId: string, title: string, url: string, description: string | null): string {
+  return createHash("sha256").update(`manual:${projectId}|${title}|${url}|${description ?? ""}`).digest("hex");
 }
 
 function normalizeProjectRole(role: string | null | undefined): ProjectRole {
@@ -1299,6 +1384,14 @@ function detectDevice(ua: string): string {
   if (s.includes("ipad") || s.includes("tablet")) return "Tablet";
   if (s.includes("mobi") || s.includes("iphone") || s.includes("android")) return "Mobile";
   return "Desktop";
+}
+
+async function resolveExistingUserId(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true }
+  });
+  return user?.id ?? null;
 }
 
 async function generateUniqueApiKey(): Promise<string> {

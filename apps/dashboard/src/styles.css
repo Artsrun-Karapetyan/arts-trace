@@ -2813,6 +2813,28 @@ tr.clickable-row:active {
   justify-self: center;
 }
 
+.issue-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.manual-issue-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  background: rgba(248, 113, 113, 0.1);
+}
+
 .affected-user-card strong {
   display: inline-flex;
   margin-top: 4px;
@@ -3306,6 +3328,88 @@ tr.clickable-row:active {
   background: linear-gradient(90deg, #14b8a6, #5eead4);
 }
 
+.manual-report-panel {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.manual-report-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.manual-report-copy h3 {
+  margin: 4px 0 6px;
+  font-size: 18px;
+}
+
+.manual-report-copy p {
+  margin: 0;
+  color: var(--text-1);
+}
+
+.manual-report-meta {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  color: var(--text-2);
+  font-size: 12px;
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+
+.manual-report-shot {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.manual-report-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.manual-report-annotations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.manual-report-annotation {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.manual-report-annotation-highlight {
+  border: 2px solid rgba(245, 158, 11, 0.95);
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.manual-report-annotation-circle {
+  border: 2px solid rgba(94, 234, 212, 0.95);
+  border-radius: 999px;
+  background: rgba(94, 234, 212, 0.1);
+}
+
+.manual-report-annotation-note {
+  transform: translate(-50%, -100%);
+  max-width: 220px;
+  padding: 6px 8px;
+  border: 1px solid rgba(94, 234, 212, 0.32);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.9);
+  color: var(--text-0);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 1100px) {
   .issue-env-grid {
     grid-template-columns: 1fr;
@@ -3325,6 +3429,14 @@ tr.clickable-row:active {
 @media (max-width: 560px) {
   .workflow-choice-grid {
     grid-template-columns: 1fr;
+  }
+
+  .manual-report-copy {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-report-meta {
+    justify-items: start;
   }
 
   .workflow-assignee-editor {

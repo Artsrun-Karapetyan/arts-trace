@@ -21,6 +21,11 @@ export class AppController {
     return this.appService.createEvent(body);
   }
 
+  @Post("manual-reports")
+  createManualReport(@Body() body: unknown) {
+    return this.appService.createManualReport(body);
+  }
+
   @Post("sourcemaps")
   uploadSourceMap(@Body() body: unknown) {
     return this.appService.uploadSourceMap(body);

@@ -28,7 +28,7 @@ export class AuthGuard implements CanActivate {
     if (
       (method === "POST" && (path === "/auth/register" || path === "/auth/login")) ||
       (method === "GET" && /^\/invites\/[^/]+$/.test(path)) ||
-      (method === "POST" && (path === "/events" || path === "/sourcemaps")) ||
+      (method === "POST" && (path === "/events" || path === "/sourcemaps" || path === "/manual-reports")) ||
       (method === "POST" && /^\/events\/[^/]+\/replay$/.test(path))
     ) {
       return true;
