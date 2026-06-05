@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SourceLocation } from "../../../components/SourceLocation";
 import { fetchEvent, fmt } from "../../../lib";
+import type { EventRow } from "../../../lib";
 
 export const Route = createFileRoute("/_authenticated/events/$id")({
   loader: ({ params }) => fetchEvent(params.id),
@@ -13,8 +14,10 @@ function EventDetailPage() {
   const event = Route.useLoaderData();
   const { t } = useTranslation();
   const replayRef = useRef<HTMLDivElement | null>(null);
+  const networkTableRef = useRef<HTMLDivElement | null>(null);
   const [currentReplayMs, setCurrentReplayMs] = useState<number>(0);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [isNetworkPinned, setIsNetworkPinned] = useState(false);
   const [showFutureRequests, setShowFutureRequests] = useState(false);
   const [networkTab, setNetworkTab] = useState<"headers" | "payload" | "preview">("headers");
   const [showAllBreadcrumbs, setShowAllBreadcrumbs] = useState(false);
@@ -29,7 +32,17 @@ function EventDetailPage() {
     if (showFutureRequests || replayNowTs == null) return networkRows;
     return networkRows.filter((item) => new Date(item.createdAt).getTime() <= replayNowTs + 250);
   }, [networkRows, replayNowTs, showFutureRequests]);
-  const selectedRequest = visibleNetworkRows.find((item) => item.id === selectedRequestId) ?? visibleNetworkRows[0] ?? null;
+  const syncedRequestId = useMemo(() => {
+    if (replayNowTs == null || visibleNetworkRows.length === 0) return null;
+    const nearest = visibleNetworkRows.reduce<{ id: string; distance: number } | null>((best, item) => {
+      const distance = Math.abs(new Date(item.createdAt).getTime() - replayNowTs);
+      if (distance > 1200) return best;
+      if (!best || distance < best.distance) return { id: item.id, distance };
+      return best;
+    }, null);
+    return nearest?.id ?? null;
+  }, [replayNowTs, visibleNetworkRows]);
+  const selectedRequest = visibleNetworkRows.find((item) => item.id === (isNetworkPinned ? selectedRequestId : syncedRequestId)) ?? visibleNetworkRows[0] ?? null;
   const breadcrumbs = event.breadcrumbs ?? [];
   const breadcrumbLimit = 10;
   const visibleBreadcrumbs = showAllBreadcrumbs ? breadcrumbs : breadcrumbs.slice(-breadcrumbLimit);
@@ -44,6 +57,12 @@ function EventDetailPage() {
         ? (eventLike as { payload?: unknown }).payload
         : undefined;
       if (typeof payload === "number") setCurrentReplayMs(payload);
+    };
+    const onPlayerStateUpdate = (eventLike: unknown) => {
+      const payload = typeof eventLike === "object" && eventLike !== null && "payload" in (eventLike as Record<string, unknown>)
+        ? (eventLike as { payload?: unknown }).payload
+        : undefined;
+      if (payload === "playing") setIsNetworkPinned(false);
     };
 
     void import("rrweb-player").then(({ default: RRWebPlayer }) => {
@@ -67,6 +86,7 @@ function EventDetailPage() {
           }
         }) as unknown as { $destroy?: () => void; addEventListener?: (name: string, fn: (event: unknown) => void) => void };
         player.addEventListener?.("ui-update-current-time", onTimeUpdate);
+        player.addEventListener?.("ui-update-player-state", onPlayerStateUpdate);
       };
 
       mount();
@@ -83,14 +103,17 @@ function EventDetailPage() {
   }, [replayEvents]);
 
   useEffect(() => {
-    if (!selectedRequestId && visibleNetworkRows.length > 0) {
-      setSelectedRequestId(visibleNetworkRows[0].id);
-      return;
-    }
     if (selectedRequestId && !visibleNetworkRows.some((item) => item.id === selectedRequestId)) {
       setSelectedRequestId(visibleNetworkRows[0]?.id ?? null);
+      setIsNetworkPinned(false);
     }
   }, [selectedRequestId, visibleNetworkRows]);
+
+  useEffect(() => {
+    if (!syncedRequestId || !networkTableRef.current) return;
+    const row = networkTableRef.current.querySelector<HTMLElement>(`[data-network-id="${CSS.escape(syncedRequestId)}"]`);
+    row?.scrollIntoView({ block: "center", behavior: "auto" });
+  }, [syncedRequestId]);
 
   return (
     <div>
@@ -220,18 +243,30 @@ function EventDetailPage() {
 
           <div className="panel network-inspector">
             <div className="network-inspector-head">
-              <strong>Network Timeline</strong>
+              <strong>Network</strong>
               <div className="network-head-right">
                 <span className="mono small-note" style={{ marginTop: 0 }}>{visibleNetworkRows.length}/{networkRows.length} requests</span>
+                {isNetworkPinned ? (
+                  <button className="btn btn-ghost network-toggle" type="button" onClick={() => setIsNetworkPinned(false)}>
+                    Follow replay
+                  </button>
+                ) : null}
                 <button className="btn btn-ghost network-toggle" type="button" onClick={() => setShowFutureRequests((v) => !v)}>
                   {showFutureRequests ? "Replay-synced" : "Show all"}
                 </button>
               </div>
             </div>
-            <div className="network-list">
+            <div className="network-table" ref={networkTableRef}>
+              <div className="network-table-head">
+                <span>Name</span>
+                <span>Status</span>
+                <span>Type</span>
+                <span>Size</span>
+                <span>Time</span>
+              </div>
               {visibleNetworkRows.length === 0 ? (
                 <div className="empty-state" style={{ padding: "24px 16px" }}>
-                  <div className="empty-state-icon" style={{ fontSize: 24 }}>📡</div>
+                  <div className="empty-state-icon" style={{ fontSize: 24 }}>-</div>
                   <div className="empty-state-text">No captured requests</div>
                 </div>
               ) : (
@@ -239,17 +274,28 @@ function EventDetailPage() {
                   const createdTs = new Date(n.createdAt).getTime();
                   const toErrorMs = createdTs - new Date(event.createdAt).getTime();
                   const nearReplayNow = replayNowTs != null ? Math.abs(createdTs - replayNowTs) <= 1200 : false;
+                  const hasNetworkError = isNetworkError(n);
+                  const isSyncedRequest = syncedRequestId === n.id;
                   return (
                     <button
                       key={n.id}
                       type="button"
-                      className={`network-item ${selectedRequest?.id === n.id ? "network-item-active" : ""} ${nearReplayNow ? "network-item-live" : ""}`}
-                      onClick={() => setSelectedRequestId(n.id)}
+                      data-network-id={n.id}
+                      className={`network-item ${selectedRequest?.id === n.id ? "network-item-active" : ""} ${nearReplayNow || isSyncedRequest ? "network-item-live" : ""} ${hasNetworkError ? "network-item-error" : ""}`}
+                      onClick={() => {
+                        setSelectedRequestId(n.id);
+                        setIsNetworkPinned(true);
+                      }}
                     >
-                      <span className="network-method">{n.method}</span>
-                      <span className="network-url mono">{n.url}</span>
-                      <span className="network-meta mono">
-                        {n.status ?? "-"} · {n.duration ?? "-"}ms · {toErrorMs >= 0 ? "+" : ""}{(toErrorMs / 1000).toFixed(1)}s
+                      <span className="network-name mono" title={n.url}>
+                        <span className={`network-request-dot ${hasNetworkError ? "network-request-dot-error" : ""}`} />
+                        {getRequestName(n.url)}
+                      </span>
+                      <span className={`network-status mono ${hasNetworkError ? "network-status-error" : ""}`}>{formatStatus(n)}</span>
+                      <span className="network-cell mono">{getRequestType(n)}</span>
+                      <span className="network-cell mono">{formatSize(n)}</span>
+                      <span className="network-cell mono" title={`${toErrorMs >= 0 ? "+" : ""}${(toErrorMs / 1000).toFixed(1)}s from error`}>
+                        {n.duration ?? "-"}ms
                       </span>
                     </button>
                   );
@@ -284,6 +330,7 @@ function EventDetailPage() {
 
                 {networkTab === "headers" ? (
                   <div className="network-general">
+                    <div className="network-detail-section">General</div>
                     <div className="network-detail-row">
                       <span className="small-note" style={{ marginTop: 0 }}>Request URL</span>
                       <span className="mono">{selectedRequest.url}</span>
@@ -294,12 +341,22 @@ function EventDetailPage() {
                     </div>
                     <div className="network-detail-row">
                       <span className="small-note" style={{ marginTop: 0 }}>Status Code</span>
-                      <span>{selectedRequest.status ?? "-"}</span>
+                      <span className={isNetworkError(selectedRequest) ? "network-status-error" : ""}>{selectedRequest.status ?? "Failed"}</span>
                     </div>
                     <div className="network-detail-row">
                       <span className="small-note" style={{ marginTop: 0 }}>Duration</span>
                       <span>{selectedRequest.duration ?? "-"} ms</span>
                     </div>
+                    {selectedRequest.error ? (
+                      <div className="network-detail-row">
+                        <span className="small-note" style={{ marginTop: 0 }}>Error</span>
+                        <span className="network-status-error">{selectedRequest.error}</span>
+                      </div>
+                    ) : null}
+                    <div className="network-detail-section">Request Headers</div>
+                    <HeaderRows headers={selectedRequest.requestHeaders} />
+                    <div className="network-detail-section">Response Headers</div>
+                    <HeaderRows headers={selectedRequest.responseHeaders} />
                   </div>
                 ) : null}
 
@@ -366,6 +423,56 @@ function EventDetailPage() {
       </div>
     </div>
   );
+}
+
+function isNetworkError(request: NonNullable<EventRow["networkRequests"]>[number]): boolean {
+  return Boolean(request.error) || (typeof request.status === "number" && request.status >= 400);
+}
+
+function getRequestName(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.split("/").filter(Boolean).pop() || parsed.hostname;
+  } catch {
+    return url.split("?")[0]?.split("/").filter(Boolean).pop() || url;
+  }
+}
+
+function formatStatus(request: NonNullable<EventRow["networkRequests"]>[number]): string {
+  if (request.status) return String(request.status);
+  return request.error ? "failed" : "-";
+}
+
+function getRequestType(request: NonNullable<EventRow["networkRequests"]>[number]): string {
+  const contentType = request.responseHeaders?.["content-type"] ?? request.responseHeaders?.["Content-Type"] ?? request.requestHeaders?.["content-type"] ?? request.requestHeaders?.["Content-Type"];
+  if (!contentType) return request.method;
+  if (contentType.includes("application/json")) return "json";
+  if (contentType.includes("text/html")) return "html";
+  if (contentType.includes("text/")) return "text";
+  return contentType.split(";")[0]?.split("/").pop() ?? request.method;
+}
+
+function formatSize(request: NonNullable<EventRow["networkRequests"]>[number]): string {
+  const bytes = byteLength(request.responseBody) + byteLength(request.requestBody) + byteLength(request.error);
+  if (bytes <= 0) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(1)} kB`;
+}
+
+function byteLength(value?: string | null): number {
+  return value ? new Blob([value]).size : 0;
+}
+
+function HeaderRows({ headers }: { headers?: Record<string, string> | null }) {
+  const entries = Object.entries(headers ?? {});
+  if (entries.length === 0) return <div className="network-detail-row"><span className="small-note" style={{ marginTop: 0 }}>-</span><span>-</span></div>;
+
+  return entries.map(([key, value]) => (
+    <div className="network-detail-row" key={key}>
+      <span className="small-note" style={{ marginTop: 0 }}>{key}</span>
+      <span className="mono">{value}</span>
+    </div>
+  ));
 }
 
 function jsonPretty(value: unknown): string {
