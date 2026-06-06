@@ -49,6 +49,7 @@ type Issue = {
   projectId: string;
   fingerprint: string;
   message: string;
+  type: "AUTOMATIC" | "MANUAL";
   status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
   priority: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
   assignee: string | null;
@@ -153,6 +154,19 @@ type IssueComment = {
   createdAt: Date;
 };
 
+type ManualReport = {
+  id: string;
+  issueId: string;
+  title: string;
+  description: string | null;
+  screenshotData: string | null;
+  annotations: Prisma.InputJsonValue | null;
+  url: string;
+  userAgent: string | null;
+  createdByUserId: string | null;
+  createdAt: Date;
+};
+
 type ProjectCreateInput = {
   data: {
     ownerId: string;
@@ -191,6 +205,7 @@ type IssueUpsertInput = {
     projectId: string;
     fingerprint: string;
     message: string;
+    type?: "AUTOMATIC" | "MANUAL";
     count: number;
     firstSeen: Date;
     lastSeen: Date;
@@ -198,6 +213,7 @@ type IssueUpsertInput = {
   update: {
     count?: { increment: number };
     message?: string;
+    type?: "AUTOMATIC" | "MANUAL";
     lastSeen?: Date;
     status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "IGNORED";
     priority?: "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
@@ -336,6 +352,21 @@ type PrismaClientLike = {
     create(args: { data: { issueId: string; authorId?: string | null; body: string } }): Promise<IssueComment>;
     findMany(args: { where: { issueId: string }; orderBy?: { createdAt: "asc" | "desc" } }): Promise<IssueComment[]>;
     deleteMany(args: DeleteManyInput): Promise<{ count: number }>;
+  };
+  manualReport: {
+    create(args: {
+      data: {
+        issueId: string;
+        title: string;
+        description?: string | null;
+        screenshotData?: string | null;
+        annotations?: Prisma.InputJsonValue | null;
+        url: string;
+        userAgent?: string | null;
+        createdByUserId?: string | null;
+      };
+    }): Promise<ManualReport>;
+    findMany(args: { where: { issueId: string }; orderBy?: { createdAt: "asc" | "desc" } }): Promise<ManualReport[]>;
   };
   issue: {
     upsert(args: IssueUpsertInput): Promise<Issue>;

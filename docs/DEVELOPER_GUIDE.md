@@ -2,18 +2,18 @@
 
 ## 1) What this repo is
 
-ArtsTrace is a lightweight error monitoring platform:
+ArtsTrace is a lightweight error monitoring and manual bug reporting platform:
 
-1. Browser SDK captures frontend errors.
-2. API ingests and stores them.
-3. Dashboard shows projects, issues, events, breadcrumbs, network, replay.
+1. Browser SDK captures frontend errors, breadcrumbs, network requests, replay, and manual reports.
+2. API validates payloads, stores project data, issues, events, comments, replay, sourcemaps, and team access.
+3. Dashboard shows projects, issues, events, source context, network details, replay, comments, team, invites, and settings.
 
 Monorepo layout:
 
 - `apps/api` - NestJS API
 - `apps/dashboard` - React dashboard (Vite + TanStack Router)
 - `apps/playground` - local test app for SDK testing
-- `packages/browser` - SDK package (`arts-trace`)
+- `packages/browser` - browser SDK package (`arts-trace`)
 - `packages/shared` - shared Zod schemas/types
 - `packages/database` - Prisma schema/client/migrations
 
@@ -30,7 +30,7 @@ pnpm dev:api
 pnpm dev:dashboard
 ```
 
-If needed, run playground too:
+Optional playground:
 
 ```bash
 pnpm dev:playground
@@ -38,7 +38,7 @@ pnpm dev:playground
 
 ## 3) Environment
 
-Root `.env` (example):
+Root `.env` example:
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/artstrace?schema=public
@@ -46,14 +46,7 @@ PORT=3100
 VITE_API_BASE_URL=http://localhost:3100
 ```
 
-Notes:
-
-- API reads `PORT` from `.env` (default `3100`).
-- Dashboard reads `VITE_API_BASE_URL` for API requests.
-- For Cloudflare Pages, set `VITE_API_BASE_URL` to the public Render API URL.
-- For Render, set `DATABASE_URL` to the Neon pooled connection string and `DIRECT_URL` to the Neon direct connection string for migrations.
-
-Production envs:
+Production env example:
 
 ```env
 PORT=3100
@@ -63,37 +56,61 @@ VITE_API_BASE_URL=https://your-render-api.onrender.com
 VITE_ARTSTRACE_API_KEY=your_project_public_api_key
 ```
 
-See also: `.env.production.example`
+Notes:
 
-## 4) Core flows
+- API reads `PORT` from `.env` and defaults to `3100`.
+- Dashboard reads `VITE_API_BASE_URL`.
+- External apps initialize SDK with project `apiKey` and `/events` endpoint.
+- Render deploy should run `pnpm db:migrate:deploy && pnpm db:generate`.
 
-### 4.1 Error ingest
+## 4) Daily commands
 
-SDK (`packages/browser`) sends error payload to `POST /events`.
+```bash
+pnpm i
+pnpm db:up
+pnpm db:generate
+pnpm db:migrate
+pnpm dev:api
+pnpm dev:dashboard
+pnpm typecheck
+```
 
-API (`apps/api`) flow:
+Other DB commands:
 
-1. Validate payload with shared schema.
-2. Resolve `Project` by `apiKey`.
-3. Compute issue fingerprint.
+```bash
+pnpm db:migrate:deploy
+pnpm db:migrate:new <name>
+pnpm db:seed
+pnpm db:down
+```
+
+## 5) Core flows
+
+### 5.1 Error ingest
+
+SDK sends error payload to `POST /events`.
+
+API flow:
+
+1. Validate payload with `packages/shared/src/events.ts`.
+2. Resolve `Project` by public `apiKey`.
+3. Compute issue fingerprint from message/stack.
 4. Upsert `Issue`.
 5. Create `Event`.
-6. Persist `Breadcrumb` and `NetworkRequest`.
+6. Persist breadcrumbs, network requests, source context, and replay chunks.
 7. Return `{ success: true, eventId }`.
 
-### 4.2 Replay ingest
+### 5.2 Replay ingest
 
-Replay is uploaded separately to avoid `pending` with large request bodies:
+Replay is uploaded separately:
 
-1. SDK sends small error request to `POST /events`.
+1. SDK sends compact error request to `POST /events`.
 2. API returns `eventId`.
 3. SDK sends replay to `POST /events/:id/replay`.
 
-This split is critical for browser reliability with `keepalive` limits.
+This avoids browser `keepalive` body-size limits.
 
-### 4.3 Replay window policy
-
-Default replay window around the error:
+Default replay window:
 
 - `15s` before error
 - `2s` after error
@@ -109,12 +126,131 @@ init({
 });
 ```
 
-Notes:
+### 5.3 Sourcemaps and source context
 
-- Replay upload is trimmed around error timestamp.
-- SDK forces periodic full snapshots so replay does not stretch to very old session time.
+External apps should build with sourcemaps and upload `.js.map` files to `POST /sourcemaps` using the same `release` passed to `init`.
 
-## 5) API endpoints
+When sourcemaps include source content, API resolves original file/line/column and stores `Event.sourceContext`, so dashboard can show nearby code lines.
+
+See also:
+
+- `docs/SOURCEMAP_RELEASE_CHECKLIST.md`
+
+### 5.4 Manual bug reports
+
+SDK supports manual bug reports from the external app:
+
+- `mountReportBugButton()`
+- `openReportDialog()`
+- `captureScreenshot()`
+- `reportBug()`
+
+Current behavior:
+
+1. User clicks `Report bug`.
+2. A small right-side drawer opens.
+3. User clicks `Take screenshot`.
+4. SDK shows an in-tab crosshair overlay.
+5. User drags to select only the needed page area.
+6. Selected area appears in preview.
+7. User can add `Highlight`, `Circle`, or `Note`.
+8. SDK sends payload to `POST /manual-reports`.
+
+Important:
+
+- SDK does not use Chrome `getDisplayMedia` share picker for this flow.
+- The screenshot selection happens inside the current tab.
+
+Example:
+
+```ts
+import { init, mountReportBugButton } from "arts-trace";
+
+init({
+  apiKey: import.meta.env.VITE_ARTSTRACE_API_KEY,
+  endpoint: import.meta.env.VITE_ARTSTRACE_ENDPOINT,
+  release: import.meta.env.VITE_APP_RELEASE
+});
+
+mountReportBugButton({
+  label: "Report bug"
+});
+```
+
+With target:
+
+```ts
+mountReportBugButton({
+  target: "#topbar-actions",
+  label: "Report bug"
+});
+```
+
+`target` is the DOM element/selector where the SDK should insert the button. If omitted, the SDK creates a floating bottom-right button.
+
+## 6) Auth, team, and permissions
+
+Dashboard auth endpoints:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+- `PATCH /auth/me`
+- `POST /auth/logout`
+
+User profile:
+
+- Register supports optional `name`.
+- Profile page allows editing display name.
+- Comments and team displays use user name first, then email fallback.
+
+Project access:
+
+- Project owner is shown separately in Team.
+- Owner cannot be removed or have role changed.
+- Members can be added through invite link or by existing user email.
+
+Roles:
+
+- `MAINTAINER` - full control: invites, roles, member removal, settings, delete project.
+- `MEMBER` - project access without team/settings management.
+- `VIEWER` - read-only project access.
+
+Invite flow:
+
+1. Maintainer creates invite with email and role.
+2. UI shows copyable invite link.
+3. Invite page pre-fills/locks expected email.
+4. After login/register, invite accept adds user to project team.
+
+## 7) Issue workflow
+
+Issues support:
+
+- status: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `IGNORED`
+- priority: `LOW`, `MEDIUM`, `HIGH`, `HIGHEST`
+- assignee from project team members
+- comments, newest first, with `See more` / `See less`
+- delete one issue, delete shown issues, delete all issues
+
+Workflow fields are editable inline in issue detail and issue table.
+
+## 8) API endpoints
+
+Public ingest:
+
+- `POST /events`
+- `POST /events/:id/replay`
+- `POST /sourcemaps`
+- `POST /manual-reports`
+
+Auth:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+- `PATCH /auth/me`
+- `POST /auth/logout`
 
 Projects:
 
@@ -124,34 +260,62 @@ Projects:
 - `POST /projects/:id/rotate-key`
 - `DELETE /projects/:id`
 
+Team and invites:
+
+- `GET /projects/:id/members`
+- `POST /projects/:id/members`
+- `POST /projects/:id/members/existing`
+- `PATCH /projects/:projectId/members/:memberId`
+- `DELETE /projects/:projectId/members/:memberId`
+- `GET /projects/:id/invites`
+- `POST /projects/:id/invites`
+- `GET /invites/:token`
+- `POST /invites/:token/accept`
+
 Issues/events:
 
-- `POST /events`
-- `POST /events/:id/replay`
 - `GET /projects/:id/issues`
 - `GET /issues/:id`
+- `PATCH /issues/:id`
+- `DELETE /issues/:id`
+- `DELETE /projects/:id/issues`
 - `GET /issues/:id/events`
 - `GET /projects/:id/events`
 - `GET /events/:id`
+- `GET /issues/:id/comments`
+- `POST /issues/:id/comments`
 
-## 6) Database models (current)
+## 9) Database models
 
 Main models:
 
+- `User`
+- `Session`
 - `Project`
+- `ProjectMember`
+- `ProjectInvite`
 - `Issue`
+- `IssueComment`
+- `ManualReport`
 - `Event`
 - `Breadcrumb`
 - `NetworkRequest`
 - `ReplayChunk`
+- `SourceMap`
 
 Source of truth:
 
 - `packages/database/prisma/schema.prisma`
 
-## 7) SDK usage in external app
+Important notes:
 
-Example:
+- `ManualReport` stores title, description, screenshot data, annotations, URL, user agent, and optional reporter id.
+- `Issue` currently does not require a `type` column.
+- Manual reports are associated to issues through `ManualReport.issueId`.
+
+## 10) SDK usage
+
+Basic external app setup:
 
 ```ts
 import { init } from "arts-trace";
@@ -159,14 +323,48 @@ import { init } from "arts-trace";
 init({
   apiKey: "YOUR_PROJECT_API_KEY",
   endpoint: "http://localhost:3100/events",
+  release: "local-dev",
   replayPreErrorMs: 15000,
   replayPostErrorMs: 2000
 });
 ```
 
-Current local package version in this repo: `0.1.14`.
+User context:
 
-## 8) Releasing SDK for local install
+```ts
+import { setUser, clearUser } from "arts-trace";
+
+setUser({
+  id: "user-id",
+  name: "User Name",
+  role: "QA"
+});
+
+clearUser();
+```
+
+Manual reports:
+
+```ts
+import { mountReportBugButton, openReportDialog, reportBug } from "arts-trace";
+
+mountReportBugButton();
+
+openReportDialog();
+
+await reportBug({
+  title: "Button is misplaced",
+  description: "The submit button appears outside the form",
+  url: window.location.href,
+  userAgent: navigator.userAgent
+});
+```
+
+Current local package version in this repo:
+
+- `packages/browser/package.json` -> `0.1.25`
+
+## 11) Releasing SDK
 
 From `packages/browser`:
 
@@ -174,93 +372,112 @@ From `packages/browser`:
 pnpm pack
 ```
 
-Then in another project (example with yarn):
+Install tarball in another project:
 
 ```bash
-yarn add /absolute/path/to/arts-trace/packages/browser/artstrace-browser-<version>.tgz --force
+yarn add /absolute/path/to/arts-trace/packages/browser/arts-trace-<version>.tgz --force
 ```
 
-Current package file list is restricted via `files` in `packages/browser/package.json`, so tarball does not include old tarballs.
+For npm publish:
 
-## 9) Common troubleshooting
+```bash
+npm publish --access public
+```
 
-### 9.1 Dashboard gets HTML instead of JSON
+Package files are controlled by `files` in `packages/browser/package.json`.
 
-Symptom:
+## 12) Common troubleshooting
 
-- `Expected JSON ... got text/html`
+### 12.1 Dashboard gets HTML instead of JSON
 
 Check:
 
-1. Dashboard API base points to ArtsTrace API (`VITE_API_BASE_URL`).
-2. API is running on the same port.
-3. Port is not used by another app.
+1. `VITE_API_BASE_URL` points to ArtsTrace API.
+2. API is running on expected port.
+3. Another app is not using the API port.
 
-### 9.2 Events request stays pending
+### 12.2 Events request stays pending
 
 Check:
 
 1. `POST /events` returns quickly with `eventId`.
 2. Replay upload appears as separate `POST /events/:id/replay`.
-3. API is up and CORS enabled.
+3. API is running and CORS allows the external app origin.
 
-### 9.3 Replay shows blank / 0:00
+### 12.3 CORS credentials error
+
+If request uses credentials, API cannot return `Access-Control-Allow-Origin: *`.
+
+Fix API CORS to return the exact allowed origin, for example:
+
+- `http://localhost:3000`
+- `https://bnk-dev.asd.am`
+
+### 12.4 Sourcemap line is wrong
+
+Check:
+
+1. External app uses same `release` in `init` and sourcemap upload.
+2. Build has `sourcemap: true`.
+3. Uploaded `.map` file matches deployed JS filename.
+4. The error was created after the sourcemap upload.
+
+### 12.5 Manual report returns 404
+
+Check:
+
+1. SDK endpoint is `/events`, for example `https://api.example.com/events`.
+2. API exposes `POST /manual-reports`.
+3. SDK version includes `getApiRoot(endpoint)` behavior.
+
+### 12.6 Manual report returns DB error
+
+Check:
+
+1. Run `pnpm db:migrate:deploy`.
+2. Run `pnpm db:generate`.
+3. Confirm `ManualReport` table exists.
+4. Do not rely on `Issue.type`; current schema does not require it.
+
+### 12.7 Prisma client missing
+
+Symptom:
+
+- `Cannot find module '.prisma/client/default'`
+
+Fix:
+
+```bash
+pnpm db:generate
+```
+
+If `npx` tries to hit the network, run the local Prisma binary or restore dependencies first.
+
+### 12.8 Replay shows blank / 0:00
 
 Check:
 
 1. Reproduce with real interactions before triggering error.
-2. Verify `POST /events/:id/replay` payload has `replayEvents.length > 0`.
-3. Open a newly created event (old records may not have replay).
+2. Verify replay payload has `replayEvents.length > 0`.
+3. Open a newly created event.
 
-### 9.4 Replay is too long (minutes)
+### 12.9 Network request details missing
 
 Check:
 
-1. External app uses the latest SDK tarball from `packages/browser`.
-2. `replayPreErrorMs`/`replayPostErrorMs` are set as expected (`15000/2000` by default).
-3. The event is newly created after SDK update.
-
-### 9.5 Network request details missing
-
-If you only see basic network rows (without payload/response details):
-
-1. Apply DB migrations (`pnpm db:migrate`).
+1. Apply DB migrations.
 2. Generate new events after migration.
-3. Old events may contain only legacy network fields.
+3. Old events may only have legacy network fields.
 
-## 10) Daily dev commands
+## 13) Where to edit what
 
-From root:
-
-```bash
-pnpm i
-pnpm db:up
-pnpm db:generate
-pnpm db:migrate
-pnpm dev:api
-pnpm dev:dashboard
-pnpm typecheck
-```
-
-DB control:
-
-```bash
-pnpm db:down
-```
-
-## 11) Where to edit what
-
-- API business logic:
-  - `apps/api/src/app.service.ts`
-- API routes:
-  - `apps/api/src/app.controller.ts`
-- SDK transport/capture:
-  - `packages/browser/src/index.ts`
-- Shared payload schemas:
-  - `packages/shared/src/events.ts`
-- DB schema/migrations:
-  - `packages/database/prisma/schema.prisma`
-- Dashboard pages:
-  - `apps/dashboard/src/routes/*`
-- Dashboard API client:
-  - `apps/dashboard/src/lib.ts`
+- API routes: `apps/api/src/app.controller.ts`
+- API business logic: `apps/api/src/app.service.ts`
+- Auth: `apps/api/src/auth.service.ts`, `apps/api/src/auth.controller.ts`
+- Dashboard API client/types: `apps/dashboard/src/lib.ts`
+- Dashboard routes: `apps/dashboard/src/routes`
+- Browser SDK init/error capture/manual report UI: `packages/browser/src/index.ts`
+- Browser SDK report button: `packages/browser/src/report-bug.ts`
+- Browser SDK transport/replay/network/breadcrumbs: `packages/browser/src`
+- Shared schemas: `packages/shared/src`
+- Prisma schema/migrations: `packages/database/prisma`

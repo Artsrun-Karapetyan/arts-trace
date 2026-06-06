@@ -1,17 +1,18 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useAuth } from "../../../auth/AuthProvider";
-import { acceptInvite, fetchInvite, fmt } from "../../../lib";
+
+import { useAuth } from "@/auth/AuthProvider";
+import { acceptInvite, fetchInvite, fmt } from "@/lib";
 
 const ROLE_LABELS = {
   MAINTAINER: "Maintainer",
   MEMBER: "Member",
-  VIEWER: "Viewer"
+  VIEWER: "Viewer",
 } as const;
 
 export const Route = createFileRoute("/_hybrid/invite/$token")({
   loader: ({ params }) => fetchInvite(params.token),
-  component: InvitePage
+  component: InvitePage,
 });
 
 function InvitePage() {
@@ -33,7 +34,10 @@ function InvitePage() {
     setError("");
     try {
       const accepted = await acceptInvite(token);
-      await navigate({ to: "/projects/$id/issues", params: { id: accepted.projectId } });
+      await navigate({
+        to: "/projects/$id/issues",
+        params: { id: accepted.projectId },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not accept invite");
     } finally {
@@ -47,7 +51,9 @@ function InvitePage() {
         <div className="invite-badge">Project invite</div>
         <h1>Join {invite.projectName}</h1>
         <p>
-          This invite is tied to <strong>{invite.email}</strong>. Log in or create an account with that email to join the project Team and get assigned.
+          This invite is tied to <strong>{invite.email}</strong>. Log in or
+          create an account with that email to join the project Team and get
+          assigned.
         </p>
 
         <div className="invite-summary">
@@ -72,22 +78,36 @@ function InvitePage() {
         {error ? <p className="small-note auth-error">{error}</p> : null}
 
         {isAuthed ? (
-          <button className="btn invite-primary" type="button" disabled={busy} onClick={() => void accept()}>
+          <button
+            className="btn invite-primary"
+            type="button"
+            disabled={busy}
+            onClick={() => void accept()}
+          >
             {busy ? "Joining..." : "Accept invite"}
           </button>
         ) : (
           <div className="invite-actions">
-            <Link className="btn invite-primary" to="/login" onClick={savePendingInvite}>
+            <Link
+              className="btn invite-primary"
+              to="/login"
+              onClick={savePendingInvite}
+            >
               Login to accept
             </Link>
-            <Link className="btn btn-ghost" to="/register" onClick={savePendingInvite}>
+            <Link
+              className="btn btn-ghost"
+              to="/register"
+              onClick={savePendingInvite}
+            >
               Create account
             </Link>
           </div>
         )}
 
         <div className="invite-note">
-          Private invite link. Use the invited email to accept before it expires.
+          Private invite link. Use the invited email to accept before it
+          expires.
         </div>
       </div>
     </main>
