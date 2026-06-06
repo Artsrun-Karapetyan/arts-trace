@@ -1,5 +1,5 @@
-import { MAX_NETWORK } from "./constants.ts";
-import type { NetworkRequest } from "./types.ts";
+import { MAX_NETWORK } from "../core/constants.js";
+import type { NetworkRequest } from "../types/index.js";
 
 const networkRequests: NetworkRequest[] = [];
 

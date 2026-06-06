@@ -1,6 +1,6 @@
 import { record } from "rrweb";
 
-import { MAX_REPLAY, MAX_REPLAY_UPLOAD_BYTES } from "./constants.ts";
+import { MAX_REPLAY, MAX_REPLAY_UPLOAD_BYTES } from "../core/constants.js";
 
 const replayEvents: Array<Record<string, unknown>> = [];
 let stopReplay: (() => void) | null = null;

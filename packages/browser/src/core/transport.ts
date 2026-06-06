@@ -1,6 +1,9 @@
+import {
+  buildReplayForTransport,
+  fitReplayForUpload,
+} from "../capture/replay.js";
+import type { IngestEventInput } from "../types/index.js";
 import { MAX_EVENT_UPLOAD_BYTES } from "./constants.ts";
-import { buildReplayForTransport, fitReplayForUpload } from "./replay.ts";
-import type { IngestEventInput } from "./types.ts";
 
 type ReplayWindow = {
   preErrorMs: number;

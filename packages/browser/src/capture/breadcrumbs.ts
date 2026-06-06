@@ -1,5 +1,5 @@
-import { MAX_BREADCRUMBS } from "./constants.ts";
-import type { Breadcrumb } from "./types.ts";
+import { MAX_BREADCRUMBS } from "../core/constants.js";
+import type { Breadcrumb } from "../types/index.js";
 
 const breadcrumbs: Breadcrumb[] = [];
 

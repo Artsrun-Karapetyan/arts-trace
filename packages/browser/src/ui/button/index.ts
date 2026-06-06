@@ -1,4 +1,4 @@
-import type { MountReportBugButtonOptions } from "./types.ts";
+import type { MountReportBugButtonOptions } from "../../types/index.js";
 
 export function mountReportBugButton(
   options: MountReportBugButtonOptions = {},
@@ -14,7 +14,7 @@ export function mountReportBugButton(
 
   const openDialog = () => {
     options.onOpen?.();
-    void import("./index.ts").then(({ openReportDialog }) => {
+    void import("../dialog/index.js").then(({ openReportDialog }) => {
       openReportDialog({
         defaultTitle: options.title,
         defaultDescription: options.description,

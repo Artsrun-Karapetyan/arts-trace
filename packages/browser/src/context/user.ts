@@ -1,4 +1,4 @@
-import type { IngestEventInput, UserContext } from "./types.ts";
+import type { IngestEventInput, UserContext } from "../types/index.js";
 
 let currentUser: UserContext | undefined = undefined;
 
